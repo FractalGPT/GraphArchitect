@@ -24,6 +24,12 @@ class BaseConverterTool(ABC):
     def tool_name(self) -> str:
         return self._tool_name
 
+    @property
+    def cost(self) -> float:
+        """Простая стоимостная функция"""
+        #Todo: сделать сложнее и  "умнее"
+        return self.prob_true / (self.cost_api + 1)
+
     @tool_name.setter
     def tool_name(self, value: str):
         raise AttributeError("Cannot modify tool_name directly")

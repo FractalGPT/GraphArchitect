@@ -1,24 +1,7 @@
 from typing import List
 
 from Algorithms.Graph.BaseEdge import BaseEdge
-
-
-# ToDo: Заглушка инструмента
-class ConverterTool:
-    """
-    Пример класса инструмента.
-    Здесь вы можете добавить собственные методы и атрибуты.
-    """
-
-    def __init__(self, cost: float = 0.0):
-        self.cost = cost
-
-    def cost_for_command(self, command: str) -> float:
-        """
-        Вернуть стоимость инструмента для команды.
-        По умолчанию возвращает `cost`, но может быть расширено.
-        """
-        return self.cost
+from Converters.BaseTool import ConverterTool
 
 
 class ListConverterTool:
@@ -33,15 +16,13 @@ class ListConverterTool:
         """Добавить инструмент в список"""
         self.tools.append(tool)
 
-    def mean_cost(self, command: str = None) -> float:
+    def mean_cost(self) -> float:
         """
         Рассчитать среднюю стоимость инструментов.
         Если указана команда, учитывается стоимость для команды.
         """
         if not self.tools:
             return 0.0
-        if command:
-            return sum(tool.cost_for_command(command) for tool in self.tools) / len(self.tools)
         return sum(tool.cost for tool in self.tools) / len(self.tools)
 
 
@@ -64,6 +45,6 @@ class EdgeWithToolConverter(BaseEdge):
         """Расчет веса без учета задачи"""
         self.weight = self.tools.mean_cost()
 
-    def calc_w_with_command(self, command: str):
-        """Расчет веса с учетом задачи"""
-        self.weight = self.tools.mean_cost(command)
+    def calc_w_with_command(self):
+        """Расчет веса"""
+        self.weight = self.tools.mean_cost()
