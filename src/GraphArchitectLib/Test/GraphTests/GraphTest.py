@@ -1,6 +1,6 @@
 import unittest
 
-from Algorithms.Graph.WeightedGraph import GraphW
+from graph_architect.Algorithms.Graph.WeightedGraph import GraphW
 
 
 class TestWeightedGraph(unittest.TestCase):

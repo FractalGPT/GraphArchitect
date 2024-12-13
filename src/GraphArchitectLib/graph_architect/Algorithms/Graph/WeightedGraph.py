@@ -1,7 +1,7 @@
 from typing import List, TypeVar, Generic
 from collections import defaultdict
 
-from Algorithms.Graph.BaseEdge import BaseEdge
+from graph_architect.Algorithms.Graph.BaseEdge import BaseEdge
 
 T = TypeVar('T', bound='BaseEdge')
 

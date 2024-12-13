@@ -1,7 +1,7 @@
 from typing import List
 
-from Algorithms.Graph.BaseEdge import BaseEdge
-from Converters.BaseTool import ConverterTool
+from graph_architect.Algorithms.Graph.BaseEdge import BaseEdge
+from graph_architect.Converters.BaseTool import ConverterTool
 
 
 class ListConverterTool:

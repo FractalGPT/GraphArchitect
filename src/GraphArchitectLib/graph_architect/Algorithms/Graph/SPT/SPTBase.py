@@ -1,8 +1,7 @@
 from typing import List, Generic, TypeVar, Iterable
 from abc import ABC, abstractmethod
 
-from Algorithms.Graph.BaseEdge import BaseEdge
-from Algorithms.Graph.WeightedGraph import GraphW
+from graph_architect.Algorithms.Graph.WeightedGraph import GraphW
 
 T = TypeVar('T', bound='BaseEdge')
 

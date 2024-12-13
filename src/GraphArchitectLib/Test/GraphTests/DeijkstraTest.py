@@ -1,7 +1,7 @@
 import unittest
 
-from Algorithms.Graph.SPT.Dijkstra import DijkstraSPath
-from Algorithms.Graph.WeightedGraph import GraphW
+from graph_architect.Algorithms.Graph.SPT.Dijkstra import DijkstraSPath
+from graph_architect.Algorithms.Graph.WeightedGraph import GraphW
 
 
 class TestDijkstra(unittest.TestCase):

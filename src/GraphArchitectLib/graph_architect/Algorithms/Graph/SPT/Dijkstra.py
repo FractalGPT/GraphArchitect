@@ -1,8 +1,8 @@
 from typing import Generic, TypeVar
 
 
-from Algorithms.Graph.WeightedGraph import GraphW
-from Algorithms.PriorityQueueMin import IndexPriorityQueueMin
+from graph_architect.Algorithms.Graph.WeightedGraph import GraphW
+from graph_architect.Algorithms.PriorityQueueMin import IndexPriorityQueueMin
 
 T = TypeVar('T', bound='BaseEdge')
 
