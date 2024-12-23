@@ -14,9 +14,9 @@ class BaseConverterTool(ABC):
         self._tool_name = tool_name
         self.tool_description = tool_description
         self.input_data_format = input_data_format
-        self.input_semantic_format = input_semantic_format
+        self._input_semantic_format = input_semantic_format
         self.output_data_format = output_data_format
-        self.output_semantic_format = output_semantic_format
+        self._output_semantic_format = output_semantic_format
         self.prob_true = 1.0
         self.cost_api = 1.0
 
@@ -33,6 +33,14 @@ class BaseConverterTool(ABC):
     @tool_name.setter
     def tool_name(self, value: str):
         raise AttributeError("Cannot modify tool_name directly")
+
+    @property
+    def input_semantic_format(self) -> str:
+        return self._input_semantic_format
+
+    @property
+    def output_semantic_format(self) -> str:
+        return self._output_semantic_format
 
     @property
     def input_format(self) -> str:

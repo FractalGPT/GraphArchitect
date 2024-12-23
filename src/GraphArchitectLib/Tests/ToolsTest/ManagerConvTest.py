@@ -32,6 +32,8 @@ class TestManagerConverterTools(unittest.TestCase):
 
         class MockConverterTool(ConverterTool):
             def __init__(self, input_format, output_format, input_semantic_format="", output_semantic_format=""):
+                self.prob_true = 1
+                self.cost_api = 1
                 self.input_format = input_format
                 self.output_format = output_format
                 self.input_semantic_format = input_semantic_format
@@ -41,6 +43,39 @@ class TestManagerConverterTools(unittest.TestCase):
                 return MockConverterTool(
                     self.input_format, self.output_format, self.input_semantic_format, self.output_semantic_format
                 )
+
+            @property
+            def input_format(self):
+                return self._input_format
+
+            @property
+            def output_format(self):
+                return self._output_format
+
+            @property
+            def input_semantic_format(self):
+                return self._input_format
+
+            @property
+            def output_semantic_format(self):
+                return self._output_semantic_format
+
+            @input_format.setter
+            def input_format(self, value: str):
+                self._input_format = value
+
+            @output_format.setter
+            def output_format(self, value: str):
+                self._output_format = value
+
+            @input_semantic_format.setter
+            def input_semantic_format(self, value: str):
+                self._input_semantic_format = value
+
+            @output_semantic_format.setter
+            def output_semantic_format(self, value: str):
+                self._output_semantic_format = value
+
 
             # Переопределяет абстрактные методы
             def calc_loss(self, input_data, output_data):
@@ -98,6 +133,16 @@ class TestManagerConverterTools(unittest.TestCase):
         ]
 
         strategy = self.manager.get_strategy("A", "D", tools)
+
+        self.assertEqual(strategy, [])
+
+    def test_get_strategy_no_exist_path(self):
+        tools = [
+            self.MockConverterTool("A", "B"),
+            self.MockConverterTool("C", "D")
+        ]
+
+        strategy = self.manager.get_strategy("A", "E", tools)
 
         self.assertIsNone(strategy)
 

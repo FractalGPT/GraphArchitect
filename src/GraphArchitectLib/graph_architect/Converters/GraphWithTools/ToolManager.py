@@ -18,17 +18,18 @@ class ManagerConverterTools:
         self.strategy_decoder = strategy_decoder
         self.runner = runner
 
-    def get_strategy(self, start_format: str, end_format: str, tools: Iterable['ConverterTool']) -> Optional[List[List['ConverterTool']]]:
+    def get_strategy(
+        self, start_format: str, end_format: str, tools: Iterable["ConverterTool"]
+    ) -> Optional[List[List["ConverterTool"]]]:
         """
         Получение стратегии конвертации
         """
         tools_l1 = self._with_any(tools)
         format_vertex: Dict[str, int] = {}
-        tools_with_vertex: Dict[str, 'EdgeWithToolConverter'] = {}
+        tools_with_vertex: Dict[str, "EdgeWithToolConverter"] = {}
 
-        graph = GraphW['EdgeWithToolConverter']()
         strategy = None
-        l1: List[List['ConverterTool']] = []  # Список списков инструментов
+        l1: List[List["ConverterTool"]] = []  # Список списков инструментов
 
         k = 0
 
@@ -52,6 +53,10 @@ class ManagerConverterTools:
             else:
                 tools_with_vertex[key_a] = EdgeWithToolConverter(s, e, tool)
 
+        graph = GraphW["EdgeWithToolConverter"](len(format_vertex))
+
+        # Проверяет есть ли в целом такие вершины. При необходимости можно добавить проверку на поиск пути от до.
+        # Если пути нет возвращать None.
         if start_format not in format_vertex or end_format not in format_vertex:
             return None
 
@@ -59,19 +64,25 @@ class ManagerConverterTools:
         target_point = format_vertex[end_format]
 
         for edge in tools_with_vertex.values():
-            edge.calc_weight()
-            graph.add_edge(edge)
+            edge.calc_w()
+            graph.add_edge_w(edge)
 
         strategy = DijkstraSPath(graph, start_point)
         spt = ShortestPathTree(strategy.edges, strategy.distances)
         path_solve = spt.get_path(target_point)
 
         for item in path_solve:
-            l1.append(item.tools)
+            l1.append(item.tools.tools)
 
         return l1
 
-    def create_and_run(self, input_data: Any, start_format: str, end_format: str, tools: Iterable['ConverterTool']) -> Any:
+    def create_and_run(
+        self,
+        input_data: Any,
+        start_format: str,
+        end_format: str,
+        tools: Iterable["ConverterTool"],
+    ) -> Any:
         """
         Создание и запуск стратегии
         """
@@ -79,13 +90,13 @@ class ManagerConverterTools:
         tool_list = self.strategy_decoder.get_tools(strategy)
         return self.runner.run(input_data, tool_list)
 
-    def _with_any(self, tools: Iterable['ConverterTool']) -> List['ConverterTool']:
+    def _with_any(self, tools: Iterable["ConverterTool"]) -> List["ConverterTool"]:
         """
         Создание фиктивных инструментов для форматов "_Any"
         """
         ret_tools = list(tools)
         semantics: Set[str] = set()
-        append_tools: List['ConverterTool'] = []
+        append_tools: List["ConverterTool"] = []
 
         for tool in ret_tools:
             if tool.input_semantic_format != "_Any":
@@ -93,11 +104,13 @@ class ManagerConverterTools:
             if tool.output_semantic_format != "*":
                 semantics.add(tool.output_semantic_format)
 
+
         for tool in ret_tools:
             if tool.input_semantic_format == "_Any":
                 clone_tool = tool.clone()
                 for sem in semantics:
                     new_tool = clone_tool.clone()
+                    ### ТУТ СПРОСИТЬ, в этом месте идет присваивание input semantic format извне.
                     new_tool.input_semantic_format = sem
                     append_tools.append(new_tool)
 
