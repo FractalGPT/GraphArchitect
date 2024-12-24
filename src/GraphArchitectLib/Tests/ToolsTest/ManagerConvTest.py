@@ -35,47 +35,14 @@ class TestManagerConverterTools(unittest.TestCase):
                 self.prob_true = 1
                 self.cost_api = 1
                 self.input_format = input_format
-                self.output_format = output_format
+                self._output_format = output_format
                 self.input_semantic_format = input_semantic_format
-                self.output_semantic_format = output_semantic_format
+                self._output_semantic_format = output_semantic_format
 
             def clone(self):
                 return MockConverterTool(
                     self.input_format, self.output_format, self.input_semantic_format, self.output_semantic_format
                 )
-
-            @property
-            def input_format(self):
-                return self._input_format
-
-            @property
-            def output_format(self):
-                return self._output_format
-
-            @property
-            def input_semantic_format(self):
-                return self._input_format
-
-            @property
-            def output_semantic_format(self):
-                return self._output_semantic_format
-
-            @input_format.setter
-            def input_format(self, value: str):
-                self._input_format = value
-
-            @output_format.setter
-            def output_format(self, value: str):
-                self._output_format = value
-
-            @input_semantic_format.setter
-            def input_semantic_format(self, value: str):
-                self._input_semantic_format = value
-
-            @output_semantic_format.setter
-            def output_semantic_format(self, value: str):
-                self._output_semantic_format = value
-
 
             # Переопределяет абстрактные методы
             def calc_loss(self, input_data, output_data):
