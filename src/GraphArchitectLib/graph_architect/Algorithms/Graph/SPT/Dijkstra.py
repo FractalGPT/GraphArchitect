@@ -16,10 +16,13 @@ class DijkstraSPath(Generic[T]):
         self.distances[vertex_start] = 0
         self.min_pq.insert(vertex_start, 0)
 
+        counter = 0
         while not self.min_pq.is_empty():
             v = self.min_pq.del_min_get_index()
             for edge in graph.adj_ew(v):  # Метод adj_ew возвращает ребра
+                counter += 1
                 self._update(edge)
+        print(counter)
 
     def _update(self, edge: T):
         """Ослабление ребра"""
