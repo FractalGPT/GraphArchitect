@@ -15,6 +15,7 @@ class BaseConverterTool(ABC):
         self.tool_description = tool_description
         self.input_data_format = input_data_format
         self.input_semantic_format = input_semantic_format
+        self.input_format = f"{self.input_data_format}|{self.input_semantic_format}"
         self._output_data_format = output_data_format
         self._output_semantic_format = output_semantic_format
         self._output_format = self.__get_output_format()
