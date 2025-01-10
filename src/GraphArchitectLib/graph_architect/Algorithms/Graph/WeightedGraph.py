@@ -26,6 +26,24 @@ class GraphW(Generic[T]):
         self.e += 1
         self.arcs += 2
 
+    def add_or_update_edge(self, edge: T):
+        """Добавить или обновить ребро"""
+        v = edge.either()
+        w = edge.other(v)
+
+        updated = False
+        for existing_edge in self.adjacency_list[v]:
+            if (
+                (existing_edge.start_v == v and existing_edge.end_v == w) or
+                (existing_edge.start_v == w and existing_edge.end_v == v)
+            ):
+                existing_edge.weight = edge.weight
+                updated = True
+                break
+
+        if not updated:
+            self.add_edge_w(edge)
+
     def add_edge(self, i: int, j: int, weight: float = 1):
         """Добавить ребро между двумя вершинами"""
         edge = BaseEdge(start_v=i, end_v=j, weight=weight)
