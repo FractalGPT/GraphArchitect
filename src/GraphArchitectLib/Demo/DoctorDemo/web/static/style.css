@@ -7,7 +7,7 @@
 
 body {
   font-family: Arial, sans-serif;
-  background: #f0f2f5; /* светло-серый фон */
+  background: #f0f2f5;
   display: flex;
   flex-direction: column;
   min-height: 100vh;
@@ -31,31 +31,27 @@ header h1 {
 main {
   flex: 1;
   display: flex;
-  justify-content: center;  /* центрируем по горизонтали */
-  align-items: flex-start;   /* прижимаем к верхней части */
+  justify-content: center;
+  align-items: flex-start;
   padding: 1rem;
 }
 
-/* Контейнер чата:
-   - фиксированная высота (80vh),
-   - flex-контейнер, чтобы .messages мог растягиваться
-*/
+/* Контейнер чата */
 .chat-container {
   background: #fff;
   width: 60%;
   max-width: 800px;
-  height: 80vh;            /* фиксируем высоту */
+  height: 80vh;
   margin: 0 auto;
   border-radius: 8px;
   box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-
   display: flex;
   flex-direction: column;
 }
 
 /* Шапка внутри чата */
 .chat-header {
-  flex-shrink: 0;          /* не даём сжиматься при переполнении */
+  flex-shrink: 0;
   text-align: center;
   padding: 1rem;
   border-bottom: 1px solid #eee;
@@ -72,8 +68,8 @@ main {
 
 /* Прокручиваемая область сообщений */
 .messages {
-  flex: 1;                 /* занимает всё свободное пространство */
-  overflow-y: auto;        /* прокрутка */
+  flex: 1;
+  overflow-y: auto;
   padding: 1rem;
   background: #fafafa;
   border-bottom: 1px solid #eee;
@@ -90,7 +86,6 @@ main {
   border: 1px solid #ddd;
   position: relative;
   font-size: 0.9rem;
-  /* Чтобы длинные строки (код) переносились */
   white-space: pre-wrap;
   word-break: break-word;
   overflow-wrap: break-word;
@@ -111,21 +106,26 @@ main {
 
 /* Поле ввода, закреплённое внизу контейнера */
 .input-container {
-  flex-shrink: 0;          /* не сжимается */
+  flex-shrink: 0;
   display: flex;
   gap: 0.5rem;
   padding: 1rem;
   background: #fff;
 }
 
-.input-container input[type="text"] {
+/* Стили для textarea вместо input */
+.input-container textarea {
   flex: 1;
   padding: 0.6rem;
   border: 1px solid #ccc;
   border-radius: 4px;
   font-size: 0.9rem;
+  resize: vertical; /* позволяет менять размер только по вертикали */
+  min-height: 60px; /* минимальная высота */
+  font-family: Arial, sans-serif; /* наследуем шрифт */
 }
 
+/* Кнопка */
 .input-container button {
   background: #007BFF;
   color: #fff;
@@ -134,6 +134,7 @@ main {
   padding: 0 1rem;
   cursor: pointer;
   font-size: 0.9rem;
+  align-self: flex-end; /* прижимаем кнопку к нижнему краю textarea */
 }
 .input-container button:hover {
   background: #0056b3;
