@@ -9,8 +9,6 @@ import json
 import requests
 
 
-
-
 app = FastAPI(title="AI Therapist Chatbot")
 
 app.add_middleware(
@@ -39,7 +37,7 @@ async def chat(message: str = Form(...)):
     # Заглушка логики AI-терапевта
     return {"response": f"AI ответ: {query_llm(message)}"}
 
-# Пример POST-эндпоинта для загрузки и анализа изображения
+
 @app.post("/upload-image")
 async def upload_image(file: UploadFile = File(...)):
     try:
