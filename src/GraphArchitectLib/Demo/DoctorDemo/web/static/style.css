@@ -118,9 +118,9 @@ main {
   flex: 1;
   padding: 0.6rem;
   border: 1px solid #ccc;
-  border-radius: 4px;
+  border-radius: 12px;
   font-size: 0.9rem;
-  resize: vertical; /* позволяет менять размер только по вертикали */
+  resize: none; /* позволяет менять размер только по вертикали */
   min-height: 60px; /* минимальная высота */
   font-family: Arial, sans-serif; /* наследуем шрифт */
 }
@@ -134,7 +134,7 @@ main {
   padding: 0 1rem;
   cursor: pointer;
   font-size: 0.9rem;
-  align-self: flex-end; /* прижимаем кнопку к нижнему краю textarea */
+  /*align-self: flex-end; /* прижимаем кнопку к нижнему краю textarea */
 }
 .input-container button:hover {
   background: #0056b3;

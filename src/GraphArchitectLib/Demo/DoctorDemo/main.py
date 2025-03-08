@@ -30,7 +30,7 @@ def read_index():
 
 @app.post("/chat")
 async def chat(message: str = Form(...)):
-    return {"response": f"AI терапевт ответил: \n {get_simple_answer(message)}"}
+    return {"response": f"{get_simple_answer(message)}"}
 
 
 @app.post("/upload-image")

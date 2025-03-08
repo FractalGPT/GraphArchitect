@@ -1,7 +1,7 @@
 import unittest
 from typing import Any
 
-from graph_architect.Converters.BaseTool import StaticTool
+from graph_architect.BaseTool import StaticTool
 
 
 class TestStaticTool(unittest.TestCase):

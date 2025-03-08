@@ -1,7 +1,7 @@
 from dotenv import load_dotenv
 import os
 
-from graph_architect.LLM.VLLMApi import VLLMApi
+from graph_architect.Tools.ApiTools.VLLMTool.VLLMApi import VLLMApi
 
 # Загрузка конфигураций
 load_dotenv()
@@ -14,7 +14,8 @@ vllm_client = VLLMApi(host, model_name, system_prompt)
 
 def get_simple_answer(query):
     '''Запрос к vllm'''
-    prompt_q = f"Если запрос {query} связан с диагностикой определи к какому специалисту идти и какие анализы досдать, дай рекомендации на основе этого списка специалистов \n\n\n {specialists}. Если это возможно поставь предварительный диагноз."
+    prompt_q = f"Только если запрос {query} связан с диагностикой определи к какому специалисту идти и какие анализы досдать, дай рекомендации на основе этого списка специалистов \n\n\n {specialists}. Если это возможно поставь предварительный диагноз.\n\n\n"
+    prompt_q += f"Если запрос {query} связан с личностью бота ответь на только на базе этой информации \n\n\n {about_me}.\n\n\n Не пиши лишней информации. И не повторяй вопрос, пиши только ответ. Не используй MarkDown. Перефразируй ответ. Отвечай только на русском."
 
     return vllm_client.query_llm(prompt_q)
 
@@ -30,7 +31,7 @@ def get_simple_answer(query):
 
 
 
-
+about_me = ''''Я первый российский медицинский многоагентный ИИ с быстрой маршрутизации агентов и LLM-агентов, маршрутизация между 1000 агентами для многошаговой задачи'''
 
 
 

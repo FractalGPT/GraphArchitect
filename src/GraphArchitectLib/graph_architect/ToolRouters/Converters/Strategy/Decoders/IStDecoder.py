@@ -1,6 +1,6 @@
 from typing import List
 
-from graph_architect.Converters.BaseTool import ConverterTool
+from graph_architect.BaseTool import ConverterTool
 
 
 class IStrategyDecoder:

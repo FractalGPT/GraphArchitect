@@ -3,11 +3,11 @@
 import unittest
 from unittest.mock import MagicMock
 
-from graph_architect.Converters.BaseTool import ConverterTool
-from graph_architect.Converters.GraphWithTools.EdgeWithTool import EdgeWithToolConverter
-from graph_architect.Converters.GraphWithTools.ToolManager import ManagerConverterTools
-from graph_architect.Converters.Strategy.Decoders.IStDecoder import IStrategyDecoder
-from graph_architect.Converters.Strategy.Ranners.IRun import IRunnerConverter
+from graph_architect.BaseTool import ConverterTool
+from graph_architect.ToolRouters.Converters.GraphWithTools.EdgeWithTool import EdgeWithToolConverter
+from graph_architect.ToolRouters.Converters.GraphWithTools.ToolManager import ManagerConverterTools
+from graph_architect.ToolRouters.Converters.Strategy.Decoders.IStDecoder import IStrategyDecoder
+from graph_architect.ToolRouters.Converters.Strategy.Ranners.IRun import IRunnerConverter
 from graph_architect.Algorithms.Graph.SPT.Dijkstra import DijkstraSPath
 from graph_architect.Algorithms.Graph.SPT.SPTBase import ShortestPathTree
 from graph_architect.Algorithms.Graph.WeightedGraph import GraphW
