@@ -40,11 +40,11 @@ class ToolChainBase:
         Словарь с ключом 'executed' (bool) и, если успешно, 'result' (результат работы инструмента)
         """
         # Инструмент с максимальным значением get_q(input_data)
-        best_tool = max(tool_list, key=lambda tool: tool.get_q(input_data), default=None)
+        best_tool = max(tool_list, key=lambda tool: tool.calc_cost(input_data), default=None)
 
         # Превышает ли качество минимальный порог
-        if best_tool and best_tool.get_q(input_data) >= min_q:
-            return {"executed": True, "result": best_tool.run(input_data)}
+        if best_tool and best_tool.calc_cost(input_data) >= min_q:
+            return {"executed": True, "result": best_tool.processing(input_data)}
 
         return {"executed": False}
 
@@ -62,8 +62,8 @@ class ToolChainBase:
         task_tools = {task: [] for task in task_chain}
 
         for tool in tools:
-            if tool.task in task_tools:
-                task_tools[tool.task].append(tool)
+            if tool.task_type in task_tools:
+                task_tools[tool.task_type].append(tool)
 
         # Содержит ли каждый шаг хотя бы один инструмент
         matrix_created = all(task_tools[task] for task in task_chain)

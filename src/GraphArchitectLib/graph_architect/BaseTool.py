@@ -9,7 +9,7 @@ class BaseConverterTool(ABC):
     """
     def __init__(self, tool_id: int = 0, tool_name: str = "", tool_description: str = "",
                  input_data_format: str = "", input_semantic_format: str = "_Any",
-                 output_data_format: str = "", output_semantic_format: str = "*"):
+                 output_data_format: str = "", output_semantic_format: str = "*", task_type = "all"):
         self.tool_id = tool_id
         self._tool_name = tool_name
         self.tool_description = tool_description
@@ -19,6 +19,7 @@ class BaseConverterTool(ABC):
         self.output_semantic_format = output_semantic_format
         self.prob_true = 1.0
         self.cost_api = 1.0
+        self.task_type = task_type
 
     @property
     def tool_name(self) -> str:
@@ -50,6 +51,10 @@ class BaseConverterTool(ABC):
 
     @abstractmethod
     def calc_loss(self) -> float:
+        pass
+
+    @abstractmethod
+    def calc_cost(self, input_data) -> float:
         pass
 
     def clone(self):
