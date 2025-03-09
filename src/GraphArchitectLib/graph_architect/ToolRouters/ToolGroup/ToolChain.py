@@ -22,9 +22,12 @@ class ToolChainBase:
 
         # Выполняем каждую задачу по очереди
         for task in task_chain:
-            next_data = self._execute_task(next_data, tool_matrix['task_tools'][task], min_q)
-            if not next_data["executed"]:
+            next_data_with_flag = self._execute_task(next_data, tool_matrix['task_tools'][task], min_q)
+
+            if not next_data_with_flag["executed"]:
                 return {"executed": False}
+
+            next_data = next_data_with_flag["result"]  # Запись актуального результата
 
         return {"executed": True, "result": next_data}
 
@@ -39,9 +42,9 @@ class ToolChainBase:
         Возвращает:
         Словарь с ключом 'executed' (bool) и, если успешно, 'result' (результат работы инструмента)
         """
+
         # Инструмент с максимальным значением get_q(input_data)
         best_tool = max(tool_list, key=lambda tool: tool.calc_cost(input_data), default=None)
-
         # Превышает ли качество минимальный порог
         if best_tool and best_tool.calc_cost(input_data) >= min_q:
             return {"executed": True, "result": best_tool.processing(input_data)}

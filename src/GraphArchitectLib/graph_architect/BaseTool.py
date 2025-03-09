@@ -3,9 +3,9 @@ from abc import ABC, abstractmethod
 from collections.abc import Iterable
 
 
-class BaseConverterTool(ABC):
+class BaseIntTool(ABC):
     """
-    Основной абстрактный класс инструмента
+    Основной абстрактный класс интеллектуального инструмента
     """
     def __init__(self, tool_id: int = 0, tool_name: str = "", tool_description: str = "",
                  input_data_format: str = "", input_semantic_format: str = "_Any",
@@ -61,11 +61,11 @@ class BaseConverterTool(ABC):
         return self.__class__(**self.__dict__)
 
     @staticmethod
-    def filter(tools: Iterable['BaseConverterTool'], max_cost: float = float('inf'), min_probe: float = 0) -> list:
+    def filter(tools: Iterable['BaseIntTool'], max_cost: float = float('inf'), min_probe: float = 0) -> list:
         return [tool for tool in tools if tool.prob_true >= min_probe and tool.cost_api <= max_cost]
 
 
-class ConverterTool(BaseConverterTool, ABC):
+class ConverterTool(BaseIntTool, ABC):
     """
        Абстрактный класс инструмента с расширенным описанием
     """
