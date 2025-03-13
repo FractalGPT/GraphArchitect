@@ -15,8 +15,10 @@ class BaseIntTool(ABC):
         self.tool_description = tool_description
         self.input_data_format = input_data_format
         self.input_semantic_format = input_semantic_format
-        self.output_data_format = output_data_format
-        self.output_semantic_format = output_semantic_format
+        self.input_format = f"{self.input_data_format}|{self.input_semantic_format}"
+        self._output_data_format = output_data_format
+        self._output_semantic_format = output_semantic_format
+        self._output_format = self.__get_output_format()
         self.prob_true = 1.0
         self.cost_api = 1.0
         self.task_type = task_type
@@ -36,11 +38,33 @@ class BaseIntTool(ABC):
         raise AttributeError("Cannot modify tool_name directly")
 
     @property
-    def input_format(self) -> str:
-        return f"{self.input_data_format}|{self.input_semantic_format}"
+    def output_data_format(self) -> str:
+        return self._output_data_format
+
+    @property
+    def output_semantic_format(self) -> str:
+        return self._output_semantic_format
 
     @property
     def output_format(self) -> str:
+        return self._output_format
+
+    @output_data_format.setter
+    def output_data_format(self, value: str):
+        self.output_data_format = value
+        self._output_format = self.__get_output_format()
+
+    @output_semantic_format.setter
+    def output_semantic_format(self, value: str):
+        self._output_semantic_format = value
+        self._output_format = self.__get_output_format()
+
+    @output_format.setter
+    def output_format(self, value: str):
+        self._output_format = value
+
+    def __get_output_format(self) -> str:
+        """Получить выходной формат"""
         return (f"{self.output_data_format}|{self.output_semantic_format}"
                 if self.output_semantic_format != "*"
                 else f"{self.output_data_format}|{self.input_semantic_format}")

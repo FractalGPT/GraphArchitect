@@ -1,6 +1,4 @@
-## НЕ РАБОТАЕТ ###
-
-import unittest
+import pytest
 from unittest.mock import MagicMock
 
 from graph_architect.BaseTool import ConverterTool
@@ -12,118 +10,139 @@ from graph_architect.Algorithms.Graph.SPT.Dijkstra import DijkstraSPath
 from graph_architect.Algorithms.Graph.SPT.SPTBase import ShortestPathTree
 from graph_architect.Algorithms.Graph.WeightedGraph import GraphW
 
+# Мок классов
+@pytest.fixture
+def mock_manager():
+    mock_decoder = MagicMock(spec=IStrategyDecoder)
+    mock_runner = MagicMock(spec=IRunnerConverter)
+
+    # Создаем экземпляр ManagerConverterTools
+    manager = ManagerConverterTools(
+        strategy_decoder=mock_decoder,
+        runner=mock_runner
+    )
+
+    # Мок конвертера
+    class MockConverterTool(ConverterTool):
+        def __init__(self, input_format, output_format, input_semantic_format="", output_semantic_format=""):
+            self.prob_true = 1
+            self.cost_api = 1
+            #self.input_data_format = input_format
+            self.input_format = input_format
+            self._output_format = output_format
+            self.input_semantic_format = input_semantic_format
+            self._output_semantic_format = output_semantic_format
+
+        def clone(self):
+            return MockConverterTool(
+                self.input_format, self.output_format, self.input_semantic_format, self.output_semantic_format
+            )
+
+        # Переопределяет абстрактные методы
+        def calc_loss(self, input_data, output_data):
+            return 0
+
+        def processing(self, input_data):
+            return input_data
+
+    return manager, MockConverterTool
 
 
-class TestManagerConverterTools(unittest.TestCase):
-    """
-    Набор тестов для проверки функциональности класса ManagerConverterTools,
-    который отвечает за управление инструментами-конвертерами и их стратегиями.
-    """
+def test_get_strategy_valid(mock_manager):
+    manager, MockConverterTool = mock_manager
 
-    def setUp(self):
-        self.mock_decoder = MagicMock(spec=IStrategyDecoder)
-        self.mock_runner = MagicMock(spec=IRunnerConverter)
+    tools = [
+        MockConverterTool("A", "B"),
+        MockConverterTool("B", "C"),
+        MockConverterTool("C", "D")
+    ]
 
-        # Create an instance of ManagerConverterTools
-        self.manager = ManagerConverterTools(
-            strategy_decoder=self.mock_decoder,
-            runner=self.mock_runner
-        )
+    class MockEdgeWithToolConverter(EdgeWithToolConverter):
+        def __init__(self, start, end, tool):
+            self.start = start
+            self.end = end
+            self.tools = [tool]
 
-        class MockConverterTool(ConverterTool):
-            def __init__(self, input_format, output_format, input_semantic_format="", output_semantic_format=""):
-                self.input_format = input_format
-                self.output_format = output_format
-                self.input_semantic_format = input_semantic_format
-                self.output_semantic_format = output_semantic_format
+        def add_tool(self, tool):
+            self.tools.append(tool)
 
-            def clone(self):
-                return MockConverterTool(
-                    self.input_format, self.output_format, self.input_semantic_format, self.output_semantic_format
-                )
+        def calc_weight(self):
+            pass
 
-            # Переопределяет абстрактные методы
-            def calc_loss(self, input_data, output_data):
-                return 0
+    mock_graph = MagicMock(spec=GraphW)
+    mock_dijkstra = MagicMock(spec=DijkstraSPath)
+    mock_spt = MagicMock(spec=ShortestPathTree)
 
-            def processing(self, input_data):
-                return input_data
+    DijkstraSPath.return_value = mock_dijkstra
+    mock_dijkstra.edges = []
+    mock_dijkstra.distances = []
+    mock_spt.get_path.return_value = [MockEdgeWithToolConverter(0, 1, tools[0]), MockEdgeWithToolConverter(1, 2, tools[1])]
 
-        self.MockConverterTool = MockConverterTool
+    manager.strategy_decoder.get_tools.return_value = tools
 
-    def test_get_strategy_valid(self):
+    strategy = manager.get_strategy("A", "C", tools)
 
-        tools = [
-            self.MockConverterTool("A", "B"),
-            self.MockConverterTool("B", "C"),
-            self.MockConverterTool("C", "D")
-        ]
+    assert strategy is not None
+    assert len(strategy) == 2
+    assert strategy[0][0].input_format == "A"
+    assert strategy[0][0].output_format == "B"
+    assert strategy[1][0].input_format == "B"
+    assert strategy[1][0].output_format == "C"
 
-        class MockEdgeWithToolConverter(EdgeWithToolConverter):
-            def __init__(self, start, end, tool):
-                self.start = start
-                self.end = end
-                self.tools = [tool]
 
-            def add_tool(self, tool):
-                self.tools.append(tool)
+def test_get_strategy_no_path(mock_manager):
+    manager, MockConverterTool = mock_manager
 
-            def calc_weight(self):
-                pass
+    tools = [
+        MockConverterTool("A", "B"),
+        MockConverterTool("C", "D")
+    ]
 
-        mock_graph = MagicMock(spec=GraphW)
-        mock_dijkstra = MagicMock(spec=DijkstraSPath)
-        mock_spt = MagicMock(spec=ShortestPathTree)
+    strategy = manager.get_strategy("A", "D", tools)
 
-        DijkstraSPath.return_value = mock_dijkstra
-        mock_dijkstra.edges = []
-        mock_dijkstra.distances = []
-        mock_spt.get_path.return_value = [MockEdgeWithToolConverter(0, 1, tools[0]), MockEdgeWithToolConverter(1, 2, tools[1])]
+    assert strategy == []
 
-        self.mock_decoder.get_tools.return_value = tools
 
-        strategy = self.manager.get_strategy("A", "C", tools)
+def test_get_strategy_no_exist_path(mock_manager):
+    manager, MockConverterTool = mock_manager
 
-        self.assertIsNotNone(strategy)
-        self.assertEqual(len(strategy), 2)
-        self.assertEqual(strategy[0][0].input_format, "A")
-        self.assertEqual(strategy[0][0].output_format, "B")
-        self.assertEqual(strategy[1][0].input_format, "B")
-        self.assertEqual(strategy[1][0].output_format, "C")
+    tools = [
+        MockConverterTool("A", "B"),
+        MockConverterTool("C", "D")
+    ]
 
-    def test_get_strategy_no_path(self):
-        tools = [
-            self.MockConverterTool("A", "B"),
-            self.MockConverterTool("C", "D")
-        ]
+    strategy = manager.get_strategy("A", "E", tools)
 
-        strategy = self.manager.get_strategy("A", "D", tools)
+    assert strategy is None
 
-        self.assertIsNone(strategy)
 
-    def test_create_and_run(self):
-        tools = [
-            self.MockConverterTool("A", "B"),
-            self.MockConverterTool("B", "C")
-        ]
-        self.mock_decoder.get_tools.return_value = tools
-        self.mock_runner.run.return_value = "result"
+def test_create_and_run(mock_manager):
+    manager, MockConverterTool = mock_manager
 
-        result = self.manager.create_and_run("input_data", "A", "C", tools)
+    tools = [
+        MockConverterTool("A", "B"),
+        MockConverterTool("B", "C")
+    ]
+    manager.strategy_decoder.get_tools.return_value = tools
+    manager.runner.run.return_value = "result"
 
-        self.mock_decoder.get_tools.assert_called_once()
-        self.mock_runner.run.assert_called_once_with("input_data", tools)
-        self.assertEqual(result, "result")
+    result = manager.create_and_run("input_data", "A", "C", tools)
 
-    def test_with_any(self):
+    manager.strategy_decoder.get_tools.assert_called_once()
+    manager.runner.run.assert_called_once_with("input_data", tools)
+    assert result == "result"
 
-        tools = [
-            self.MockConverterTool("_Any", "B"),
-            self.MockConverterTool("A", "*")
-        ]
 
-        result = self.manager._with_any(tools)
+def test_with_any(mock_manager):
+    manager, MockConverterTool = mock_manager
 
-        self.assertEqual(len(result), 1)
-        self.assertEqual(result[0].input_format, "A")
-        self.assertEqual(result[0].output_format, "*")
+    tools = [
+        MockConverterTool("_Any", "B"),
+        MockConverterTool("A", "*")
+    ]
+
+    result = manager._with_any(tools)
+
+    assert len(result) == 1
+    assert result[0].input_format == "A"
+    assert result[0].output_format == "*"
