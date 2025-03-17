@@ -6,7 +6,7 @@ from typing import Any, Dict
 logger = logging.getLogger(__name__)
 logging.basicConfig(level=logging.INFO)
 
-class ReplicateApi:
+class LLMReplicateApi:
     """
     Клиент для взаимодействия с API Replicate для работы с языковыми моделями.
     """
