@@ -4,7 +4,7 @@ from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 import uvicorn
 
-from Demo.DoctorDemo.Logic.main_logic import get_simple_answer
+from Demo.AvatarDemo.Logic.main_logic import get_simple_answer
 
 
 
