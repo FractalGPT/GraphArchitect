@@ -2,61 +2,29 @@
 <html lang="ru">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>AI Терапевт</title>
-  <meta name="theme-color" content="#4a90e2">
-  <meta name="apple-mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <link rel="stylesheet" href="/web/static/style.css">
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
 </head>
 <body>
-  <div class="app-container">
-    <header>
-      <div class="header-content">
-        <h1>AI Терапевт</h1>
-        <p>Профессиональная медицинская помощь онлайн</p>
+  <header>
+    <h1>AI Терапевт</h1>
+  </header>
+  <main>
+    <div class="chat-container">
+      <div class="chat-header">
+        <h2>Добро пожаловать!</h2>
+        <p>Задайте свой вопрос, и я постараюсь помочь.</p>
       </div>
-    </header>
+      <div class="messages" id="messages"></div>
 
-    <main class="main-content">
-      <div class="chat-container">
-        <div class="chat-header">
-          <div class="chat-header-avatar">
-            <i class="fas fa-robot"></i>
-          </div>
-          <div class="chat-header-info">
-            <h2>Доктор AI</h2>
-            <p>Медицинский ассистент</p>
-          </div>
-          <div class="chat-header-status"></div>
-        </div>
-
-        <div class="messages-container">
-          <div class="messages" id="messages">
-            <div class="welcome-message">
-              <p>Начните диалог, описав свои симптомы или загрузив фото</p>
-            </div>
-          </div>
-        </div>
-
-        <div class="input-container">
-          <div class="input-group">
-            <textarea id="userInput" placeholder="Опишите ваши симптомы..." rows="1"></textarea>
-            <div class="file-upload">
-              <label for="fileInput" title="Загрузить фото">
-                <i class="fas fa-camera"></i>
-                <input type="file" id="fileInput" accept="image/*" style="display: none;">
-              </label>
-            </div>
-          </div>
-          <button class="send-button" id="sendBtn">
-            <i class="fas fa-paper-plane"></i>
-          </button>
-        </div>
+      <div class="input-container">
+        <textarea id="userInput" placeholder="Введите сообщение..." rows="4"></textarea>
+        <button id="sendBtn">Отправить</button>
       </div>
-    </main>
-  </div>
+
+
+    </div>
+  </main>
   <script src="/web/static/script.js"></script>
 </body>
 </html>

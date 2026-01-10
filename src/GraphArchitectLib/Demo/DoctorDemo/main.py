@@ -1,11 +1,12 @@
 from fastapi import FastAPI, Form, UploadFile, File, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import FileResponse, JSONResponse
+from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 import uvicorn
-from typing import Optional
 
 from Demo.DoctorDemo.Logic.main_logic import get_simple_answer
+
+
 
 app = FastAPI(title="AI Therapist Chatbot")
 
@@ -20,6 +21,8 @@ app.add_middleware(
 app.mount("/web/static", StaticFiles(directory="web/static"), name="static")
 
 
+
+
 @app.get("/")
 def read_index():
     return FileResponse("web/index.html")
@@ -27,43 +30,19 @@ def read_index():
 
 @app.post("/chat")
 async def chat(message: str = Form(...)):
-    try:
-        # Здесь ваша логика обработки сообщения
-        response = get_simple_answer(message)
-        return JSONResponse(content={"response": response})
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+    return {"response": f"{get_simple_answer(message)}"}
 
 
 @app.post("/upload-image")
-async def upload_image(
-        file: UploadFile = File(...),
-        message: Optional[str] = Form(None)
-):
+async def upload_image(file: UploadFile = File(...)):
     try:
         content = await file.read()
-
-        # 1. Анализ изображения (ваша реализация)
-        image_analysis = {
-            "diagnosis": "Пример диагноза по изображению",
-            "confidence": 0.85
-        }
-
-        # 2. Если есть текстовое сообщение, обрабатываем и его
-        text_response = None
-        if message:
-            text_response = get_simple_answer(message)
-
-        # Формируем ответ
-        result = {
-            "analysis": image_analysis,
-            "text_response": text_response
-        }
-
-        return JSONResponse(content=result)
-
+        # Заглушка анализа
+        return {"analysis": {"diagnosis": "Пример диагноза", "confidence": 0.85}}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
+
 
 
 if __name__ == "__main__":

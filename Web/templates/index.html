@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Графовый Архитектор</title>
+    <link rel="stylesheet" href="/static/css/styles.css">
+    <script src="https://unpkg.com/htmx.org@1.9.10"></script>
+</head>
+<body>
+    <div class="main-container">
+        <!-- Центральная панель - чат -->
+        <div class="chat-container">
+            <div class="chat-header">
+                <h2>Графовый Архитектор</h2>
+                <p>Система с динамической сборкой инструментов</p>
+            </div>
+
+            <div class="workflow-section" id="workflow-display">
+                <div class="workflow-title">
+                    <span>🔄</span>
+                    <span>Цепочка обработки</span>
+                </div>
+                <div class="workflow-steps">
+                    <div class="workflow-step">
+                        <div class="step-card">
+                            <div class="step-icon">🔍</div>
+                            <div class="step-name">Researcher</div>
+                            <div class="step-status">Ожидание</div>
+                        </div>
+                        <div class="step-arrow">›</div>
+                    </div>
+                    <div class="workflow-step">
+                        <div class="step-card">
+                            <div class="step-icon">📊</div>
+                            <div class="step-name">Analyzer</div>
+                            <div class="step-status">Ожидание</div>
+                        </div>
+                        <div class="step-arrow">›</div>
+                    </div>
+                    <div class="workflow-step">
+                        <div class="step-card">
+                            <div class="step-icon">✍️</div>
+                            <div class="step-name">Writer</div>
+                            <div class="step-status">Ожидание</div>
+                        </div>
+                        <div class="step-arrow">›</div>
+                    </div>
+                    <div class="workflow-step">
+                        <div class="step-card">
+                            <div class="step-icon">✅</div>
+                            <div class="step-name">Reviewer</div>
+                            <div class="step-status">Ожидание</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="chat-messages" id="chat-messages">
+                <div class="welcome-message">
+                    <h3>👋 Добро пожаловать!</h3>
+                    <p>Задайте вопрос или загрузите файлы для анализа</p>
+                </div>
+            </div>
+
+            <div class="input-container">
+                <div id="file-display"></div>
+
+                <form id="chat-form">
+                    <div class="input-row">
+                        <textarea
+                            name="message"
+                            id="message-input"
+                            placeholder="Введите сообщение..."
+                            rows="1"></textarea>
+
+                        <input type="hidden" name="files" id="files-data" value="">
+
+                        <label for="file-input" class="attach-btn">
+                            📎
+                        </label>
+                        <input
+                            type="file"
+                            id="file-input"
+                            multiple
+                            style="display: none;"
+                            accept=".pdf,.doc,.docx,.txt,.jpg,.jpeg,.png">
+
+                        <button type="submit" class="send-btn">Отправить</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Правая панель - агенты -->
+        <div class="agents-panel">
+            <div class="agents-header">
+                <h3>Интеллектуальные агенты</h3>
+            </div>
+            {% for agent in agents %}
+            <div class="agent-card">
+                <div class="agent-avatar" style="background: {{ agent.color }}">
+                    {{ agent.avatar }}
+                </div>
+                <div class="agent-info">
+                    <div class="agent-name">{{ agent.name }}</div>
+                    <div class="agent-desc">{{ agent.desc }}</div>
+                </div>
+                <div class="agent-status"></div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+
+    <script src="/static/js/app.js"></script>
+</body>
+</html>
