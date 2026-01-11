@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Workflow Visualizer - Graph Architect</title>
+    <link rel="stylesheet" href="/static/css/workflow_styles.css">
+    <script src="https://cdn.socket.io/4.6.0/socket.io.min.js"></script>
+</head>
+<body>
+    <div class="app-container">
+        <!-- Верхняя панель - Workflow Steps -->
+        <div class="workflow-header">
+            <div class="workflow-info">
+                <h1 id="workflow-name">Workflow Visualizer</h1>
+                <p id="workflow-description">Выберите шаблон для начала</p>
+            </div>
+            <div class="workflow-controls">
+                <select id="template-selector" class="template-select">
+                    <option value="">Выберите шаблон...</option>
+                    <option value="customer_support">Customer Support Resolution</option>
+                    <option value="code_review">Code Review Pipeline</option>
+                    <option value="content_creation">Content Creation Workflow</option>
+                </select>
+                <button id="start-btn" class="btn btn-primary" disabled>▶ Запустить</button>
+                <button id="stop-btn" class="btn btn-danger" disabled>⏹ Остановить</button>
+            </div>
+        </div>
+
+        <!-- Визуализация шагов workflow -->
+        <div class="workflow-steps-container">
+            <div id="workflow-steps" class="workflow-steps">
+                <!-- Шаги будут добавлены динамически -->
+            </div>
+        </div>
+
+        <!-- Основной контейнер -->
+        <div class="main-content">
+            <!-- Левая панель - Competing Agents -->
+            <div class="agents-sidebar">
+                <div class="agents-header">
+                    <h3>🏆 Competing Agents</h3>
+                    <p id="current-step-name">Ожидание начала...</p>
+                </div>
+                <div id="competing-agents" class="competing-agents-list">
+                    <div class="no-agents-message">
+                        <p>Выберите и запустите workflow для начала конкурентного выбора агентов</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Центральная панель - Logs & Details -->
+            <div class="details-panel">
+                <div class="panel-header">
+                    <h3>📊 Execution Details</h3>
+                    <button id="clear-logs-btn" class="btn-small">Очистить</button>
+                </div>
+                <div id="execution-logs" class="execution-logs">
+                    <div class="log-entry log-info">
+                        <span class="log-time">--:--:--</span>
+                        <span class="log-message">Система готова к работе</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Правая панель - Agent Library -->
+            <div class="library-sidebar">
+                <div class="library-header">
+                    <h3>📚 Agent Library</h3>
+                    <input type="text" id="agent-search" placeholder="Поиск агента..." class="search-input">
+                </div>
+                <div id="agent-library" class="agent-library-list">
+                    <!-- Библиотека агентов загрузится динамически -->
+                </div>
+            </div>
+        </div>
+
+        <!-- Статистика workflow -->
+        <div class="workflow-stats">
+            <div class="stat-item">
+                <span class="stat-label">Текущий шаг:</span>
+                <span id="stat-current-step" class="stat-value">-</span>
+            </div>
+            <div class="stat-item">
+                <span class="stat-label">Прогресс:</span>
+                <span id="stat-progress" class="stat-value">0%</span>
+            </div>
+            <div class="stat-item">
+                <span class="stat-label">Время:</span>
+                <span id="stat-time" class="stat-value">0:00</span>
+            </div>
+            <div class="stat-item">
+                <span class="stat-label">Статус:</span>
+                <span id="stat-status" class="stat-value status-idle">Idle</span>
+            </div>
+        </div>
+    </div>
+
+    <script src="/static/js/workflow_app.js"></script>
+</body>
+</html>

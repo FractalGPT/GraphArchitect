@@ -3,115 +3,235 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Графовый Архитектор</title>
+    <title>Графовый Архитектор - Workflow Visualizer</title>
     <link rel="stylesheet" href="/static/css/styles.css">
-    <script src="https://unpkg.com/htmx.org@1.9.10"></script>
+    <link rel="stylesheet" href="/static/css/workflow_styles.css">
+    <script src="https://cdn.socket.io/4.6.0/socket.io.min.js"></script>
+    <style>
+        .mode-toggle {
+            position: fixed;
+            top: 15px;
+            right: 20px;
+            z-index: 2000;
+            background: rgba(255, 255, 255, 0.9);
+            padding: 5px;
+            border-radius: 10px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+            display: flex;
+            gap: 5px;
+            backdrop-filter: blur(5px);
+        }
+        
+        .mode-toggle button {
+            padding: 8px 16px;
+            border: none;
+            background: transparent;
+            color: #666;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+        
+        .mode-toggle button:hover {
+            background: rgba(102, 126, 234, 0.1);
+            color: #667eea;
+        }
+        
+        .mode-toggle button.active {
+            background: #667eea;
+            color: white;
+            box-shadow: 0 2px 8px rgba(102, 126, 234, 0.4);
+        }
+        
+        .view-container {
+            display: none;
+            height: 100vh;
+            width: 100vw;
+        }
+        
+        .view-container.active {
+            display: block;
+        }
+
+        /* Исправление наложения */
+        #chat-view .main-container {
+            height: 100vh;
+        }
+    </style>
 </head>
 <body>
-    <div class="main-container">
-        <!-- Центральная панель - чат -->
-        <div class="chat-container">
-            <div class="chat-header">
-                <h2>Графовый Архитектор</h2>
-                <p>Система с динамической сборкой инструментов</p>
+    <!-- Переключатель режимов -->
+    <div class="mode-toggle">
+        <button id="toggle-workflow" class="active"><span>🔄</span> Workflow</button>
+        <button id="toggle-chat"><span>💬</span> Чат</button>
+    </div>
+
+    <!-- Режим Workflow (основной) -->
+    <div id="workflow-view" class="view-container active">
+        <div class="app-container">
+            <!-- Верхняя панель -->
+            <div class="workflow-header">
+                <div class="workflow-info">
+                    <h1 id="workflow-name">Workflow Visualizer</h1>
+                    <p id="workflow-description">Выберите шаблон и запустите процесс</p>
+                </div>
+                <div class="workflow-controls">
+                    <select id="template-selector" class="template-select">
+                        <option value="">Выберите шаблон...</option>
+                        <option value="customer_support">Customer Support Resolution</option>
+                        <option value="code_review">Code Review Pipeline</option>
+                        <option value="content_creation">Content Creation Workflow</option>
+                    </select>
+                    <button id="start-btn" class="btn btn-primary" disabled>▶ Запустить</button>
+                    <button id="stop-btn" class="btn btn-danger" disabled>⏹ Остановить</button>
+                </div>
             </div>
 
-            <div class="workflow-section" id="workflow-display">
-                <div class="workflow-title">
-                    <span>🔄</span>
-                    <span>Цепочка обработки</span>
+            <!-- Визуализация шагов -->
+            <div class="workflow-steps-container">
+                <div id="workflow-steps" class="workflow-steps">
+                    <!-- Шаги будут добавлены динамически -->
+                    <div class="no-steps-placeholder">Выберите шаблон для визуализации структуры</div>
                 </div>
-                <div class="workflow-steps">
-                    <div class="workflow-step">
-                        <div class="step-card">
-                            <div class="step-icon">🔍</div>
-                            <div class="step-name">Researcher</div>
-                            <div class="step-status">Ожидание</div>
+            </div>
+
+            <!-- Основной контент -->
+            <div class="main-content">
+                <!-- Левая панель - Competing Agents -->
+                <div class="agents-sidebar">
+                    <div class="agents-header">
+                        <h3>🏆 Competing Agents</h3>
+                        <p id="current-step-name">Ожидание начала...</p>
+                    </div>
+                    <div id="competing-agents" class="competing-agents-list">
+                        <div class="no-agents-message">
+                            <p>Здесь будут отображаться конкурирующие агенты текущего шага</p>
                         </div>
-                        <div class="step-arrow">›</div>
                     </div>
-                    <div class="workflow-step">
-                        <div class="step-card">
-                            <div class="step-icon">📊</div>
-                            <div class="step-name">Analyzer</div>
-                            <div class="step-status">Ожидание</div>
-                        </div>
-                        <div class="step-arrow">›</div>
+                </div>
+
+                <!-- Центральная панель - Logs -->
+                <div class="details-panel">
+                    <div class="panel-header">
+                        <h3>📊 Execution Details</h3>
+                        <button id="clear-logs-btn" class="btn-small">Очистить</button>
                     </div>
-                    <div class="workflow-step">
-                        <div class="step-card">
-                            <div class="step-icon">✍️</div>
-                            <div class="step-name">Writer</div>
-                            <div class="step-status">Ожидание</div>
-                        </div>
-                        <div class="step-arrow">›</div>
-                    </div>
-                    <div class="workflow-step">
-                        <div class="step-card">
-                            <div class="step-icon">✅</div>
-                            <div class="step-name">Reviewer</div>
-                            <div class="step-status">Ожидание</div>
+                    <div id="execution-logs" class="execution-logs">
+                        <div class="log-entry log-info">
+                            <span class="log-time">--:--:--</span>
+                            <span class="log-message">Система инициализирована. Подключение к WebSocket...</span>
                         </div>
                     </div>
                 </div>
-            </div>
 
-            <div class="chat-messages" id="chat-messages">
-                <div class="welcome-message">
-                    <h3>👋 Добро пожаловать!</h3>
-                    <p>Задайте вопрос или загрузите файлы для анализа</p>
-                </div>
-            </div>
-
-            <div class="input-container">
-                <div id="file-display"></div>
-
-                <form id="chat-form">
-                    <div class="input-row">
-                        <textarea
-                            name="message"
-                            id="message-input"
-                            placeholder="Введите сообщение..."
-                            rows="1"></textarea>
-
-                        <input type="hidden" name="files" id="files-data" value="">
-
-                        <label for="file-input" class="attach-btn">
-                            📎
-                        </label>
-                        <input
-                            type="file"
-                            id="file-input"
-                            multiple
-                            style="display: none;"
-                            accept=".pdf,.doc,.docx,.txt,.jpg,.jpeg,.png">
-
-                        <button type="submit" class="send-btn">Отправить</button>
+                <!-- Правая панель - Agent Library -->
+                <div class="library-sidebar">
+                    <div class="library-header">
+                        <h3>📚 Agent Library</h3>
+                        <input type="text" id="agent-search" placeholder="Поиск агента..." class="search-input">
                     </div>
-                </form>
+                    <div id="agent-library" class="agent-library-list">
+                        <!-- Библиотека агентов загрузится динамически -->
+                    </div>
+                </div>
             </div>
-        </div>
 
-        <!-- Правая панель - агенты -->
-        <div class="agents-panel">
-            <div class="agents-header">
-                <h3>Интеллектуальные агенты</h3>
-            </div>
-            {% for agent in agents %}
-            <div class="agent-card">
-                <div class="agent-avatar" style="background: {{ agent.color }}">
-                    {{ agent.avatar }}
+            <!-- Статистика -->
+            <div class="workflow-stats">
+                <div class="stat-item">
+                    <span class="stat-label">Текущий шаг:</span>
+                    <span id="stat-current-step" class="stat-value">-</span>
                 </div>
-                <div class="agent-info">
-                    <div class="agent-name">{{ agent.name }}</div>
-                    <div class="agent-desc">{{ agent.desc }}</div>
+                <div class="stat-item">
+                    <span class="stat-label">Прогресс:</span>
+                    <span id="stat-progress" class="stat-value">0%</span>
                 </div>
-                <div class="agent-status"></div>
+                <div class="stat-item">
+                    <span class="stat-label">Время:</span>
+                    <span id="stat-time" class="stat-value">0:00</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-label">Статус:</span>
+                    <span id="stat-status" class="stat-value status-idle">Idle</span>
+                </div>
             </div>
-            {% endfor %}
         </div>
     </div>
 
+    <!-- Режим Чата (второстепенный) -->
+    <div id="chat-view" class="view-container">
+        <div class="main-container">
+            <div class="chat-container">
+                <div class="chat-header">
+                    <h2>Графовый Архитектор</h2>
+                    <p>Классический чат-интерфейс</p>
+                </div>
+                <div class="chat-messages" id="chat-messages">
+                    <div class="welcome-message">
+                        <h3>👋 Добро пожаловать в Чат!</h3>
+                        <p>Это классический режим общения с агентами.</p>
+                    </div>
+                </div>
+                <div class="input-container">
+                    <div id="file-display"></div>
+                    <form id="chat-form">
+                        <div class="input-row">
+                            <textarea name="message" id="message-input" placeholder="Введите сообщение..." rows="1"></textarea>
+                            <input type="hidden" name="files" id="files-data" value="">
+                            <label for="file-input" class="attach-btn">📎</label>
+                            <input type="file" id="file-input" multiple style="display: none;" accept=".pdf,.doc,.docx,.txt,.jpg,.jpeg,.png">
+                            <button type="submit" class="send-btn">Отправить</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+            <div class="agents-panel">
+                <div class="agents-header">
+                    <h3>Доступные агенты</h3>
+                </div>
+                {% for agent in agents %}
+                <div class="agent-card">
+                    <div class="agent-avatar" style="background: {{ agent.color }}">{{ agent.avatar }}</div>
+                    <div class="agent-info">
+                        <div class="agent-name">{{ agent.name }}</div>
+                        <div class="agent-desc">{{ agent.desc }}</div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Скрипты -->
     <script src="/static/js/app.js"></script>
+    <script src="/static/js/workflow_app.js"></script>
+    
+    <script>
+        // Улучшенное переключение между режимами
+        const toggleWorkflow = document.getElementById('toggle-workflow');
+        const toggleChat = document.getElementById('toggle-chat');
+        const workflowView = document.getElementById('workflow-view');
+        const chatView = document.getElementById('chat-view');
+
+        toggleWorkflow.addEventListener('click', () => {
+            workflowView.classList.add('active');
+            chatView.classList.remove('active');
+            toggleWorkflow.classList.add('active');
+            toggleChat.classList.remove('active');
+            console.log('🔄 Switched to Workflow view');
+        });
+        
+        toggleChat.addEventListener('click', () => {
+            chatView.classList.add('active');
+            workflowView.classList.remove('active');
+            toggleChat.classList.add('active');
+            toggleWorkflow.classList.remove('active');
+            console.log('💬 Switched to Chat view');
+        });
+    </script>
 </body>
 </html>

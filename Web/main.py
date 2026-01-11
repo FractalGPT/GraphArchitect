@@ -2,6 +2,7 @@ from fastapi import FastAPI, Request, UploadFile, File, Form
 from fastapi.responses import HTMLResponse, StreamingResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
+from fastapi.middleware.cors import CORSMiddleware
 import asyncio
 import json
 import os
@@ -9,23 +10,43 @@ from datetime import datetime
 from typing import List, Optional
 import aiofiles
 
-app = FastAPI(title="Graph Architect")
+# Импортируем API router
+from api_router import api_router
+from models import MessageRequest
+from services import ChatService
 
-# Настройка статики и шаблонов
+# Импортируем WebSocket manager
+import socketio
+from websocket_manager import sio
+from workflow_templates import get_all_templates
+from agent_library import get_all_agents
+
+app = FastAPI(
+    title="Graph Architect", 
+    description="Multi-Agent System with Dynamic Workflow and Competitive Agent Selection",
+    version="3.0.0"
+)
+
+# CORS для API
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],  # В production указать конкретные домены
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+# Подключаем API router
+app.include_router(api_router)
+
+# Настройка статики и шаблонов для GUI
 app.mount("/static", StaticFiles(directory="static"), name="static")
 templates = Jinja2Templates(directory="templates")
 
-# Хранилище сессий (в production использовать Redis/DB)
-sessions = {}
+# Инициализируем сервисы
+chat_service = ChatService()
 
-# Агенты системы
-AGENTS = [
-    {"id": 1, "name": "Researcher", "icon": "🔍", "color": "#10b981"},
-    {"id": 2, "name": "Analyzer", "icon": "📊", "color": "#f59e0b"},
-    {"id": 3, "name": "Writer", "icon": "✍️", "color": "#ec4899"},
-    {"id": 4, "name": "Reviewer", "icon": "✅", "color": "#ef4444"}
-]
-
+# Доступные агенты для GUI
 AVAILABLE_AGENTS = [
     {"name": "Deep Research", "avatar": "🔬", "color": "#10b981", "desc": "Доступен"},
     {"name": "Marketing AI", "avatar": "📈", "color": "#f59e0b", "desc": "Доступен"},
@@ -60,11 +81,48 @@ def get_file_icon(filename: str) -> str:
 
 @app.get("/", response_class=HTMLResponse)
 async def home(request: Request):
-    """Главная страница"""
+    """Главная страница - старый интерфейс"""
+    templates_list = get_all_templates()
     return templates.TemplateResponse("index.html", {
         "request": request,
-        "agents": AVAILABLE_AGENTS
+        "agents": AVAILABLE_AGENTS,
+        "templates": templates_list
     })
+
+
+@app.get("/visualizer", response_class=HTMLResponse)
+async def workflow_visualizer(request: Request):
+    """Страница визуализации workflow с конкурентным выбором агентов"""
+    return templates.TemplateResponse("workflow_view.html", {
+        "request": request
+    })
+
+
+@app.get("/api/workflow-templates")
+async def get_workflow_templates():
+    """Получить список доступных шаблонов workflow"""
+    return {"templates": get_all_templates()}
+
+
+@app.get("/api/agents-library")
+async def get_agents_library():
+    """Получить библиотеку всех агентов"""
+    agents = get_all_agents()
+    return {
+        "agents": [
+            {
+                "id": agent.id,
+                "name": agent.name,
+                "icon": agent.icon,
+                "color": agent.color,
+                "type": agent.type,
+                "specialization": agent.specialization,
+                "capabilities": agent.capabilities,
+                "metrics": agent.metrics
+            }
+            for agent in agents
+        ]
+    }
 
 
 @app.post("/upload-files")
@@ -106,17 +164,26 @@ async def upload_files(files: List[UploadFile] = File(...)):
 
 
 @app.post("/chat/stream")
-async def chat_stream(
+async def chat_stream_gui(
         request: Request,
         message: str = Form(...),
         files: Optional[str] = Form(None)
 ):
-    """Потоковый вывод ответа от агентов"""
+    """Потоковый вывод для GUI (HTML формат)"""
+    
+    # Используем сервис для обработки
+    file_list = json.loads(files) if files else []
+    
+    # Генерируем chat_id для GUI сессии (или получаем из сессии)
+    chat_id = "gui_session_" + datetime.now().strftime("%Y%m%d%H%M%S")
+    
+    msg_request = MessageRequest(
+        chat_id=chat_id,
+        message=message,
+        files=[f["name"] for f in file_list] if file_list else []
+    )
 
     async def generate():
-        # Парсинг информации о файлах
-        file_list = json.loads(files) if files else []
-
         # Начальное сообщение с файлами
         if file_list:
             yield '<div class="message assistant-message">'
@@ -127,67 +194,64 @@ async def chat_stream(
             yield '<br>---<br><br>'
         else:
             yield '<div class="message assistant-message"><div class="message-content">'
-
-        await asyncio.sleep(0.1)
-        completed = []
-
-        # Обработка каждым агентом
-        for agent in AGENTS:
-            # Маркер начала работы агента (для JS)
-            yield f'<span data-agent-start="{agent["id"]}" style="display:none;"></span>'
-
-            # Сообщение агента
-            yield f'<strong>{agent["icon"]} {agent["name"]}</strong><br><br>'
-            await asyncio.sleep(0.1)
-
-            # Процесс обработки
-            work_msg = f'Обрабатываю запрос: <em>{message}</em><br>'
-            if file_list and agent['id'] == 1:
-                work_msg += f'Анализирую {len(file_list)} файл(ов)...<br>'
-
-            # Потоковый вывод текста по словам
-            words = work_msg.split(' ')
-            for word in words:
-                yield word + ' '
-                await asyncio.sleep(0.05)
-
-            await asyncio.sleep(0.3)
-
-            # Результат агента
-            result = f'✅ {agent["name"]} завершил анализ<br><br>'
-            words = result.split(' ')
-            for word in words:
-                yield word + ' '
-                await asyncio.sleep(0.05)
-
-            # Маркер завершения работы агента (для JS)
-            yield f'<span data-agent-complete="{agent["id"]}" style="display:none;"></span>'
-            await asyncio.sleep(0.2)
-
-        # Финальный ответ
-        final = '---<br><br><strong>🎯 Итоговый результат</strong><br><br>'
-        final += f'Ваш запрос «{message}» был успешно обработан всей цепочкой агентов.<br><br>'
-        if file_list:
-            final += f'📎 Проанализировано файлов: {len(file_list)}<br>'
-        final += '🔍 Исследование завершено<br>'
-        final += '📊 Данные проанализированы<br>'
-        final += '✍️ Текст сгенерирован<br>'
-        final += '✅ Качество проверено<br><br>'
-        final += 'Система готова к следующему запросу.'
-
-        # Потоковый вывод финального сообщения
-        words = final.split(' ')
-        for word in words:
-            yield word + ' '
-            await asyncio.sleep(0.03)
-
+        
+        # Получаем стрим от сервиса и конвертируем в HTML
+        async for chunk in chat_service.process_message_stream(msg_request):
+            if chunk.type == "workflow":
+                # Парсим workflow и отправляем только массив agents
+                workflow_data = json.loads(chunk.content)
+                agents_json = json.dumps(workflow_data.get('agents', []))
+                yield f'<span data-workflow-agents=\'{agents_json}\' style="display:none;"></span>'
+            
+            elif chunk.type == "agent_start":
+                # Маркер начала работы агента
+                yield f'<span data-agent-start="{chunk.agent_id}" style="display:none;"></span>'
+                yield f'<strong>{chunk.content}</strong><br><br>'
+            
+            elif chunk.type == "agent_complete":
+                # Маркер завершения
+                yield f'<span data-agent-complete="{chunk.agent_id}" style="display:none;"></span>'
+            
+            elif chunk.type == "text":
+                # Текстовый контент
+                yield chunk.content
+        
         yield '</div></div>'
 
     return StreamingResponse(generate(), media_type="text/html")
 
 
+# Оборачиваем FastAPI приложение в Socket.IO
+# cors_allowed_origins='*' уже задано в websocket_manager.py
+combined_asgi_app = socketio.ASGIApp(sio, app, socketio_path='/socket.io')
+
 if __name__ == "__main__":
     import uvicorn
+    import socket
 
     os.makedirs("uploads", exist_ok=True)
-    uvicorn.run(app, host="127.0.0.1", port=8000)
+    
+    # Функция для проверки доступности порта
+    def is_port_available(port: int) -> bool:
+        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+            try:
+                s.bind(('127.0.0.1', port))
+                return True
+            except OSError:
+                return False
+    
+    # Ищем свободный порт
+    port = 8000
+    while not is_port_available(port) and port < 8010:
+        print(f"[WARNING] Port {port} zaniat, probuem sleduyuschiy...")
+        port += 1
+    
+    if port >= 8010:
+        print("[ERROR] Ne udalos naiti svobodnyi port v diapazone 8000-8010")
+        print("Ostanovite drugie protsessy ili izmenite port vruchnuyu")
+    else:
+        print(f"[OK] Zapusk servera na portu {port}")
+        print(f"[WEB] Otkroite v brauzere: http://127.0.0.1:{port}")
+        print(f"[API] API dokumentatsiya: http://127.0.0.1:{port}/docs")
+        print(f"[WS] Socket.IO slushayet na /socket.io")
+        uvicorn.run(combined_asgi_app, host="127.0.0.1", port=port, log_level="info")

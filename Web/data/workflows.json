@@ -1,0 +1,380 @@
+{
+  "gui_session_20260111052002": {
+    "chat_id": "gui_session_20260111052002",
+    "name": "Default Workflow",
+    "description": null,
+    "steps": [],
+    "current_step_index": 0,
+    "created_at": "2026-01-11T05:20:02.695152",
+    "request_type": "text",
+    "agents": [
+      {
+        "id": "agent-researcher",
+        "name": "Researcher",
+        "icon": "🔍",
+        "color": "#10b981",
+        "type": "research",
+        "specialization": "Исследует данные",
+        "capabilities": [
+          "research",
+          "data_collection"
+        ],
+        "metrics": {}
+      },
+      {
+        "id": "agent-analyzer",
+        "name": "Analyzer",
+        "icon": "📊",
+        "color": "#f59e0b",
+        "type": "analysis",
+        "specialization": "Анализирует информацию",
+        "capabilities": [
+          "analysis",
+          "insights"
+        ],
+        "metrics": {}
+      },
+      {
+        "id": "agent-writer",
+        "name": "Writer",
+        "icon": "✍️",
+        "color": "#ec4899",
+        "type": "writing",
+        "specialization": "Генерирует текст",
+        "capabilities": [
+          "writing",
+          "content_creation"
+        ],
+        "metrics": {}
+      },
+      {
+        "id": "agent-reviewer",
+        "name": "Reviewer",
+        "icon": "✅",
+        "color": "#ef4444",
+        "type": "review",
+        "specialization": "Проверяет качество",
+        "capabilities": [
+          "review",
+          "quality_check"
+        ],
+        "metrics": {}
+      }
+    ]
+  },
+  "gui_session_20260111052101": {
+    "chat_id": "gui_session_20260111052101",
+    "name": "Default Workflow",
+    "description": null,
+    "steps": [],
+    "current_step_index": 0,
+    "created_at": "2026-01-11T05:21:01.825136",
+    "request_type": "text",
+    "agents": [
+      {
+        "id": "agent-researcher",
+        "name": "Researcher",
+        "icon": "🔍",
+        "color": "#10b981",
+        "type": "research",
+        "specialization": "Исследует данные",
+        "capabilities": [
+          "research",
+          "data_collection"
+        ],
+        "metrics": {}
+      },
+      {
+        "id": "agent-analyzer",
+        "name": "Analyzer",
+        "icon": "📊",
+        "color": "#f59e0b",
+        "type": "analysis",
+        "specialization": "Анализирует информацию",
+        "capabilities": [
+          "analysis",
+          "insights"
+        ],
+        "metrics": {}
+      },
+      {
+        "id": "agent-writer",
+        "name": "Writer",
+        "icon": "✍️",
+        "color": "#ec4899",
+        "type": "writing",
+        "specialization": "Генерирует текст",
+        "capabilities": [
+          "writing",
+          "content_creation"
+        ],
+        "metrics": {}
+      },
+      {
+        "id": "agent-reviewer",
+        "name": "Reviewer",
+        "icon": "✅",
+        "color": "#ef4444",
+        "type": "review",
+        "specialization": "Проверяет качество",
+        "capabilities": [
+          "review",
+          "quality_check"
+        ],
+        "metrics": {}
+      }
+    ]
+  },
+  "gui_session_20260111052736": {
+    "chat_id": "gui_session_20260111052736",
+    "name": "Default Workflow",
+    "description": null,
+    "steps": [],
+    "current_step_index": 0,
+    "created_at": "2026-01-11T05:27:36.331960",
+    "request_type": "text",
+    "agents": [
+      {
+        "id": "agent-researcher",
+        "name": "Researcher",
+        "icon": "🔍",
+        "color": "#10b981",
+        "type": "research",
+        "specialization": "Исследует данные",
+        "capabilities": [
+          "research",
+          "data_collection"
+        ],
+        "metrics": {}
+      },
+      {
+        "id": "agent-analyzer",
+        "name": "Analyzer",
+        "icon": "📊",
+        "color": "#f59e0b",
+        "type": "analysis",
+        "specialization": "Анализирует информацию",
+        "capabilities": [
+          "analysis",
+          "insights"
+        ],
+        "metrics": {}
+      },
+      {
+        "id": "agent-writer",
+        "name": "Writer",
+        "icon": "✍️",
+        "color": "#ec4899",
+        "type": "writing",
+        "specialization": "Генерирует текст",
+        "capabilities": [
+          "writing",
+          "content_creation"
+        ],
+        "metrics": {}
+      },
+      {
+        "id": "agent-reviewer",
+        "name": "Reviewer",
+        "icon": "✅",
+        "color": "#ef4444",
+        "type": "review",
+        "specialization": "Проверяет качество",
+        "capabilities": [
+          "review",
+          "quality_check"
+        ],
+        "metrics": {}
+      }
+    ]
+  },
+  "gui_session_20260111053609": {
+    "chat_id": "gui_session_20260111053609",
+    "name": "Default Workflow",
+    "description": null,
+    "steps": [],
+    "current_step_index": 0,
+    "created_at": "2026-01-11T05:36:09.406982",
+    "request_type": "text",
+    "agents": [
+      {
+        "id": "agent-researcher",
+        "name": "Researcher",
+        "icon": "🔍",
+        "color": "#10b981",
+        "type": "research",
+        "specialization": "Исследует данные",
+        "capabilities": [
+          "research",
+          "data_collection"
+        ],
+        "metrics": {}
+      },
+      {
+        "id": "agent-analyzer",
+        "name": "Analyzer",
+        "icon": "📊",
+        "color": "#f59e0b",
+        "type": "analysis",
+        "specialization": "Анализирует информацию",
+        "capabilities": [
+          "analysis",
+          "insights"
+        ],
+        "metrics": {}
+      },
+      {
+        "id": "agent-writer",
+        "name": "Writer",
+        "icon": "✍️",
+        "color": "#ec4899",
+        "type": "writing",
+        "specialization": "Генерирует текст",
+        "capabilities": [
+          "writing",
+          "content_creation"
+        ],
+        "metrics": {}
+      },
+      {
+        "id": "agent-reviewer",
+        "name": "Reviewer",
+        "icon": "✅",
+        "color": "#ef4444",
+        "type": "review",
+        "specialization": "Проверяет качество",
+        "capabilities": [
+          "review",
+          "quality_check"
+        ],
+        "metrics": {}
+      }
+    ]
+  },
+  "gui_session_20260111053828": {
+    "chat_id": "gui_session_20260111053828",
+    "name": "Default Workflow",
+    "description": null,
+    "steps": [],
+    "current_step_index": 0,
+    "created_at": "2026-01-11T05:38:28.858569",
+    "request_type": "text",
+    "agents": [
+      {
+        "id": "agent-researcher",
+        "name": "Researcher",
+        "icon": "🔍",
+        "color": "#10b981",
+        "type": "research",
+        "specialization": "Исследует данные",
+        "capabilities": [
+          "research",
+          "data_collection"
+        ],
+        "metrics": {}
+      },
+      {
+        "id": "agent-analyzer",
+        "name": "Analyzer",
+        "icon": "📊",
+        "color": "#f59e0b",
+        "type": "analysis",
+        "specialization": "Анализирует информацию",
+        "capabilities": [
+          "analysis",
+          "insights"
+        ],
+        "metrics": {}
+      },
+      {
+        "id": "agent-writer",
+        "name": "Writer",
+        "icon": "✍️",
+        "color": "#ec4899",
+        "type": "writing",
+        "specialization": "Генерирует текст",
+        "capabilities": [
+          "writing",
+          "content_creation"
+        ],
+        "metrics": {}
+      },
+      {
+        "id": "agent-reviewer",
+        "name": "Reviewer",
+        "icon": "✅",
+        "color": "#ef4444",
+        "type": "review",
+        "specialization": "Проверяет качество",
+        "capabilities": [
+          "review",
+          "quality_check"
+        ],
+        "metrics": {}
+      }
+    ]
+  },
+  "gui_session_20260111054147": {
+    "chat_id": "gui_session_20260111054147",
+    "name": "Default Workflow",
+    "description": null,
+    "steps": [],
+    "current_step_index": 0,
+    "created_at": "2026-01-11T05:41:47.123458",
+    "request_type": "text",
+    "agents": [
+      {
+        "id": "agent-researcher",
+        "name": "Researcher",
+        "icon": "🔍",
+        "color": "#10b981",
+        "type": "research",
+        "specialization": "Исследует данные",
+        "capabilities": [
+          "research",
+          "data_collection"
+        ],
+        "metrics": {}
+      },
+      {
+        "id": "agent-analyzer",
+        "name": "Analyzer",
+        "icon": "📊",
+        "color": "#f59e0b",
+        "type": "analysis",
+        "specialization": "Анализирует информацию",
+        "capabilities": [
+          "analysis",
+          "insights"
+        ],
+        "metrics": {}
+      },
+      {
+        "id": "agent-writer",
+        "name": "Writer",
+        "icon": "✍️",
+        "color": "#ec4899",
+        "type": "writing",
+        "specialization": "Генерирует текст",
+        "capabilities": [
+          "writing",
+          "content_creation"
+        ],
+        "metrics": {}
+      },
+      {
+        "id": "agent-reviewer",
+        "name": "Reviewer",
+        "icon": "✅",
+        "color": "#ef4444",
+        "type": "review",
+        "specialization": "Проверяет качество",
+        "capabilities": [
+          "review",
+          "quality_check"
+        ],
+        "metrics": {}
+      }
+    ]
+  }
+}

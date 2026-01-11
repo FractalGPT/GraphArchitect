@@ -1,0 +1,736 @@
+/* === Базовые стили === */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    min-height: 100vh;
+    color: #333;
+}
+
+.app-container {
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+    max-width: 1920px;
+    margin: 0 auto;
+}
+
+/* === Верхняя панель === */
+.workflow-header {
+    background: rgba(255, 255, 255, 0.98);
+    padding: 20px 30px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    border-bottom: 3px solid #667eea;
+}
+
+.workflow-info h1 {
+    font-size: 28px;
+    color: #333;
+    margin-bottom: 5px;
+}
+
+.workflow-info p {
+    color: #666;
+    font-size: 14px;
+}
+
+.workflow-controls {
+    display: flex;
+    gap: 15px;
+    align-items: center;
+}
+
+.template-select {
+    padding: 10px 20px;
+    border: 2px solid #667eea;
+    border-radius: 8px;
+    font-size: 14px;
+    background: white;
+    cursor: pointer;
+    transition: all 0.3s;
+}
+
+.template-select:hover {
+    border-color: #764ba2;
+}
+
+.btn {
+    padding: 10px 25px;
+    border: none;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s;
+}
+
+.btn-primary {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+}
+
+.btn-primary:hover:not(:disabled) {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
+}
+
+.btn-primary:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.btn-danger {
+    background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+    color: white;
+}
+
+.btn-danger:hover:not(:disabled) {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(245, 87, 108, 0.4);
+}
+
+.btn-small {
+    padding: 5px 12px;
+    font-size: 12px;
+    background: #667eea;
+    color: white;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+}
+
+/* === Workflow Steps Visualization === */
+.workflow-steps-container {
+    background: rgba(255, 255, 255, 0.95);
+    padding: 20px 30px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.workflow-steps {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 20px;
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    padding: 10px 0;
+}
+
+.step-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    min-width: 150px;
+    position: relative;
+}
+
+.step-card {
+    background: white;
+    border: 3px solid #e0e0e0;
+    border-radius: 12px;
+    padding: 20px;
+    min-height: 100px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.4s;
+    position: relative;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+.step-card .step-number {
+    position: absolute;
+    top: -12px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: #667eea;
+    color: white;
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: bold;
+    font-size: 14px;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
+}
+
+.step-card .step-name {
+    font-weight: 600;
+    font-size: 14px;
+    color: #333;
+    text-align: center;
+    margin-bottom: 5px;
+}
+
+.step-card .step-desc {
+    font-size: 11px;
+    color: #666;
+    text-align: center;
+}
+
+.step-card .step-status {
+    margin-top: 10px;
+    font-size: 24px;
+}
+
+/* Статусы шагов */
+.step-card.pending {
+    border-color: #e0e0e0;
+    opacity: 0.6;
+}
+
+.step-card.in-progress {
+    border-color: #667eea;
+    background: linear-gradient(135deg, rgba(102, 126, 234, 0.1) 0%, rgba(118, 75, 162, 0.1) 100%);
+    transform: scale(1.08);
+    animation: pulse-glow 2s ease-in-out infinite;
+    box-shadow: 0 0 25px rgba(102, 126, 234, 0.5);
+}
+
+.step-card.completed {
+    border-color: #10b981;
+    background: rgba(16, 185, 129, 0.1);
+}
+
+/* Стрелки между шагами */
+.step-arrow {
+    color: #ccc;
+    font-size: 24px;
+    margin: 0 10px;
+}
+
+.step-arrow.active {
+    color: #667eea;
+    animation: arrow-pulse 1.5s ease-in-out infinite;
+}
+
+/* === Основной контент === */
+.main-content {
+    display: grid;
+    grid-template-columns: 350px 1fr 300px;
+    gap: 20px;
+    padding: 20px;
+    flex: 1;
+}
+
+/* === Левая панель - Competing Agents === */
+.agents-sidebar {
+    background: rgba(255, 255, 255, 0.98);
+    border-radius: 12px;
+    padding: 20px;
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.15);
+    overflow-y: auto;
+    max-height: calc(100vh - 380px);
+}
+
+.agents-header h3 {
+    margin-bottom: 5px;
+    color: #333;
+}
+
+.agents-header p {
+    font-size: 13px;
+    color: #666;
+    margin-bottom: 15px;
+}
+
+.competing-agents-list {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+}
+
+.no-agents-message {
+    text-align: center;
+    color: #999;
+    padding: 40px 20px;
+    font-size: 14px;
+}
+
+/* === Agent Card (Competing) === */
+.agent-competing-card {
+    background: white;
+    border: 2px solid #e0e0e0;
+    border-radius: 10px;
+    padding: 15px;
+    transition: all 0.4s;
+    position: relative;
+    overflow: hidden;
+}
+
+.agent-competing-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 4px;
+    background: linear-gradient(90deg, transparent, #667eea, transparent);
+    opacity: 0;
+    transition: opacity 0.3s;
+}
+
+.agent-competing-card.competing {
+    border-color: #3b82f6;
+    animation: card-pulse 2s ease-in-out infinite;
+}
+
+.agent-competing-card.competing::before {
+    opacity: 1;
+    animation: shimmer 2s linear infinite;
+}
+
+.agent-competing-card.leading {
+    border-color: #fbbf24;
+    border-width: 3px;
+    transform: scale(1.05);
+    animation: leader-glow 1.5s ease-in-out infinite;
+    box-shadow: 0 0 30px rgba(251, 191, 36, 0.4);
+    z-index: 10;
+}
+
+.agent-competing-card.winner {
+    border-color: #10b981;
+    border-width: 3px;
+    animation: winner-celebration 1s ease-out;
+    box-shadow: 0 0 40px rgba(16, 185, 129, 0.6);
+}
+
+.agent-competing-card.eliminated {
+    opacity: 0.3;
+    filter: grayscale(1);
+    transform: scale(0.95);
+    pointer-events: none;
+}
+
+.agent-card-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 10px;
+}
+
+.agent-avatar {
+    width: 50px;
+    height: 50px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 24px;
+    flex-shrink: 0;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.agent-info-text h4 {
+    font-size: 15px;
+    color: #333;
+    margin-bottom: 3px;
+}
+
+.agent-info-text p {
+    font-size: 11px;
+    color: #666;
+}
+
+.agent-status-badge {
+    margin-left: auto;
+    padding: 4px 10px;
+    border-radius: 12px;
+    font-size: 10px;
+    font-weight: 600;
+    text-transform: uppercase;
+}
+
+.agent-status-badge.competing {
+    background: rgba(59, 130, 246, 0.1);
+    color: #3b82f6;
+}
+
+.agent-status-badge.leading {
+    background: rgba(251, 191, 36, 0.2);
+    color: #f59e0b;
+}
+
+.agent-status-badge.winner {
+    background: rgba(16, 185, 129, 0.2);
+    color: #10b981;
+}
+
+.agent-metrics {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 10px;
+    font-size: 12px;
+}
+
+.metric-item {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.metric-label {
+    color: #666;
+}
+
+.metric-value {
+    font-weight: 600;
+    color: #333;
+}
+
+.metric-value.score {
+    color: #fbbf24;
+}
+
+.agent-progress {
+    margin-top: 10px;
+}
+
+.agent-progress-label {
+    display: flex;
+    justify-content: space-between;
+    font-size: 11px;
+    color: #666;
+    margin-bottom: 5px;
+}
+
+.progress-bar-container {
+    width: 100%;
+    height: 8px;
+    background: #e0e0e0;
+    border-radius: 10px;
+    overflow: hidden;
+    position: relative;
+}
+
+.progress-bar {
+    height: 100%;
+    background: linear-gradient(90deg, #667eea, #764ba2);
+    border-radius: 10px;
+    transition: width 0.4s ease-out;
+    position: relative;
+}
+
+.progress-bar::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent);
+    animation: progress-shimmer 1.5s linear infinite;
+}
+
+/* === Центральная панель - Logs === */
+.details-panel {
+    background: rgba(255, 255, 255, 0.98);
+    border-radius: 12px;
+    padding: 20px;
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.15);
+    display: flex;
+    flex-direction: column;
+}
+
+.panel-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 15px;
+}
+
+.panel-header h3 {
+    color: #333;
+}
+
+.execution-logs {
+    flex: 1;
+    overflow-y: auto;
+    background: #f8f9fa;
+    border-radius: 8px;
+    padding: 15px;
+    font-family: 'Consolas', 'Monaco', monospace;
+    font-size: 13px;
+    max-height: calc(100vh - 420px);
+}
+
+.log-entry {
+    padding: 8px 12px;
+    margin-bottom: 8px;
+    border-radius: 6px;
+    display: flex;
+    gap: 10px;
+    align-items: flex-start;
+    animation: log-appear 0.3s ease-out;
+}
+
+.log-time {
+    color: #666;
+    font-weight: 600;
+    min-width: 80px;
+}
+
+.log-message {
+    flex: 1;
+}
+
+.log-info {
+    background: rgba(59, 130, 246, 0.1);
+    border-left: 3px solid #3b82f6;
+}
+
+.log-success {
+    background: rgba(16, 185, 129, 0.1);
+    border-left: 3px solid #10b981;
+}
+
+.log-warning {
+    background: rgba(251, 191, 36, 0.1);
+    border-left: 3px solid #fbbf24;
+}
+
+.log-error {
+    background: rgba(239, 68, 68, 0.1);
+    border-left: 3px solid #ef4444;
+}
+
+/* === Правая панель - Agent Library === */
+.library-sidebar {
+    background: rgba(255, 255, 255, 0.98);
+    border-radius: 12px;
+    padding: 20px;
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.15);
+    overflow-y: auto;
+    max-height: calc(100vh - 380px);
+}
+
+.library-header h3 {
+    margin-bottom: 10px;
+    color: #333;
+}
+
+.search-input {
+    width: 100%;
+    padding: 10px;
+    border: 2px solid #e0e0e0;
+    border-radius: 8px;
+    font-size: 13px;
+    margin-bottom: 15px;
+    transition: border-color 0.3s;
+}
+
+.search-input:focus {
+    outline: none;
+    border-color: #667eea;
+}
+
+.agent-library-list {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.library-agent-card {
+    background: white;
+    border: 1px solid #e0e0e0;
+    border-radius: 8px;
+    padding: 12px;
+    transition: all 0.3s;
+    cursor: pointer;
+}
+
+.library-agent-card:hover {
+    border-color: #667eea;
+    transform: translateX(5px);
+    box-shadow: 0 4px 12px rgba(102, 126, 234, 0.2);
+}
+
+.library-agent-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.library-agent-avatar {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 20px;
+    flex-shrink: 0;
+}
+
+.library-agent-info h5 {
+    font-size: 13px;
+    color: #333;
+    margin-bottom: 2px;
+}
+
+.library-agent-info p {
+    font-size: 11px;
+    color: #666;
+}
+
+.library-agent-type {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 10px;
+    font-size: 10px;
+    background: #f0f0f0;
+    color: #666;
+    margin-top: 5px;
+}
+
+/* === Статистика workflow === */
+.workflow-stats {
+    background: rgba(255, 255, 255, 0.98);
+    padding: 15px 30px;
+    display: flex;
+    justify-content: space-around;
+    align-items: center;
+    box-shadow: 0 -4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.stat-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.stat-label {
+    font-size: 12px;
+    color: #666;
+    margin-bottom: 5px;
+}
+
+.stat-value {
+    font-size: 18px;
+    font-weight: 600;
+    color: #333;
+}
+
+.stat-value.status-idle {
+    color: #999;
+}
+
+.stat-value.status-running {
+    color: #667eea;
+}
+
+.stat-value.status-completed {
+    color: #10b981;
+}
+
+/* === Animations === */
+@keyframes pulse-glow {
+    0%, 100% {
+        box-shadow: 0 0 25px rgba(102, 126, 234, 0.5);
+    }
+    50% {
+        box-shadow: 0 0 40px rgba(102, 126, 234, 0.8);
+    }
+}
+
+@keyframes leader-glow {
+    0%, 100% {
+        box-shadow: 0 0 30px rgba(251, 191, 36, 0.4);
+    }
+    50% {
+        box-shadow: 0 0 50px rgba(251, 191, 36, 0.7);
+    }
+}
+
+@keyframes winner-celebration {
+    0% {
+        transform: scale(1);
+    }
+    50% {
+        transform: scale(1.15);
+    }
+    100% {
+        transform: scale(1.05);
+    }
+}
+
+@keyframes card-pulse {
+    0%, 100% {
+        border-color: #3b82f6;
+    }
+    50% {
+        border-color: #60a5fa;
+    }
+}
+
+@keyframes shimmer {
+    0% {
+        transform: translateX(-100%);
+    }
+    100% {
+        transform: translateX(200%);
+    }
+}
+
+@keyframes progress-shimmer {
+    0% {
+        transform: translateX(-100%);
+    }
+    100% {
+        transform: translateX(200%);
+    }
+}
+
+@keyframes arrow-pulse {
+    0%, 100% {
+        opacity: 1;
+        transform: scale(1);
+    }
+    50% {
+        opacity: 0.5;
+        transform: scale(1.2);
+    }
+}
+
+@keyframes log-appear {
+    from {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* === Responsive === */
+@media (max-width: 1400px) {
+    .main-content {
+        grid-template-columns: 300px 1fr 250px;
+    }
+}
+
+@media (max-width: 1024px) {
+    .main-content {
+        grid-template-columns: 1fr;
+        grid-template-rows: auto auto auto;
+    }
+    
+    .agents-sidebar,
+    .details-panel,
+    .library-sidebar {
+        max-height: 500px;
+    }
+}

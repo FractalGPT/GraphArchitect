@@ -33,6 +33,9 @@ document.getElementById('file-input').addEventListener('change', async function(
     }
 });
 
+// Глобальная переменная для хранения цепочки агентов
+let workflowAgents = [];
+
 // Обработка отправки формы с потоковым выводом
 document.getElementById('chat-form').addEventListener('submit', async function(e) {
     e.preventDefault();
@@ -74,29 +77,50 @@ document.getElementById('chat-form').addEventListener('submit', async function(e
         const decoder = new TextDecoder();
         let activeAgent = null;
         const completedAgents = [];
+        let buffer = '';
 
         while (true) {
             const {done, value} = await reader.read();
             if (done) break;
 
             const chunk = decoder.decode(value, {stream: true});
+            buffer += chunk;
             
-            // Добавляем chunk к сообщению
-            assistantMessage.innerHTML += chunk;
-            
-            // Проверяем маркеры агентов
-            const startMatch = chunk.match(/data-agent-start="(\d+)"/);
-            if (startMatch) {
-                activeAgent = parseInt(startMatch[1]);
-                updateWorkflow(activeAgent, completedAgents);
+            // Проверяем метаданные workflow
+            const workflowMatch = buffer.match(/<span data-workflow-agents='([^']+)' style="display:none;"><\/span>/);
+            if (workflowMatch) {
+                try {
+                    const workflowData = JSON.parse(workflowMatch[1]);
+                    workflowAgents = workflowData.agents || workflowData;
+                    initializeWorkflow(workflowAgents);
+                    buffer = buffer.replace(workflowMatch[0], '');
+                } catch (e) {
+                    console.error('Error parsing workflow agents:', e, workflowMatch[1]);
+                }
             }
             
-            const completeMatch = chunk.match(/data-agent-complete="(\d+)"/);
-            if (completeMatch) {
+            // Проверяем маркеры начала работы агента
+            let startMatch;
+            while ((startMatch = buffer.match(/<span data-agent-start="(\d+)" style="display:none;"><\/span>/))) {
+                activeAgent = parseInt(startMatch[1]);
+                updateWorkflow(activeAgent, completedAgents);
+                buffer = buffer.replace(startMatch[0], '');
+            }
+            
+            // Проверяем маркеры завершения работы агента
+            let completeMatch;
+            while ((completeMatch = buffer.match(/<span data-agent-complete="(\d+)" style="display:none;"><\/span>/))) {
                 const completedId = parseInt(completeMatch[1]);
                 completedAgents.push(completedId);
                 activeAgent = null;
                 updateWorkflow(activeAgent, completedAgents);
+                buffer = buffer.replace(completeMatch[0], '');
+            }
+
+            // Добавляем оставшийся контент к сообщению
+            if (buffer) {
+                assistantMessage.innerHTML += buffer;
+                buffer = '';
             }
 
             // Автоскролл
@@ -150,34 +174,74 @@ function escapeHtml(text) {
     return div.innerHTML;
 }
 
+// Инициализация workflow панели
+function initializeWorkflow(agents) {
+    if (!agents || agents.length === 0) {
+        console.error('No agents provided to initializeWorkflow');
+        return;
+    }
+    
+    console.log('Initializing workflow with agents:', agents);
+    
+    const workflowSection = document.getElementById('workflow-display');
+    const workflowSteps = document.querySelector('.workflow-steps');
+    
+    if (!workflowSection || !workflowSteps) {
+        console.error('Workflow elements not found');
+        return;
+    }
+    
+    // Очищаем текущие шаги
+    workflowSteps.innerHTML = '';
+    
+    // Создаем карточки для каждого агента
+    agents.forEach((agent, index) => {
+        const stepDiv = document.createElement('div');
+        stepDiv.className = 'workflow-step';
+        
+        const arrow = index < agents.length - 1 ? 
+            '<div class="step-arrow">›</div>' : '';
+        
+        stepDiv.innerHTML = `
+            <div class="step-card" data-agent-id="${agent.id}">
+                <div class="step-icon">${agent.icon}</div>
+                <div class="step-name">${agent.name}</div>
+                <div class="step-status">Ожидание</div>
+            </div>
+            ${arrow}
+        `;
+        
+        workflowSteps.appendChild(stepDiv);
+    });
+    
+    // Показываем workflow панель с анимацией
+    workflowSection.style.display = 'block';
+    workflowSection.style.animation = 'slideInFromTop 0.5s ease-out';
+    
+    console.log('Workflow initialized with', agents.length, 'agents');
+}
+
 // Обновление workflow визуализации
 function updateWorkflow(activeAgentId, completedAgentIds) {
-    const agents = [
-        {id: 1, name: 'Researcher', icon: '🔍'},
-        {id: 2, name: 'Analyzer', icon: '📊'},
-        {id: 3, name: 'Writer', icon: '✍️'},
-        {id: 4, name: 'Reviewer', icon: '✅'}
-    ];
-    
     // Находим все карточки агентов
     const workflowSteps = document.querySelectorAll('.workflow-step');
     
-    agents.forEach((agent, index) => {
-        if (index >= workflowSteps.length) return;
-        
-        const stepCard = workflowSteps[index].querySelector('.step-card');
-        const stepStatus = workflowSteps[index].querySelector('.step-status');
+    workflowSteps.forEach((step) => {
+        const stepCard = step.querySelector('.step-card');
+        const stepStatus = step.querySelector('.step-status');
         
         if (!stepCard || !stepStatus) return;
+        
+        const agentId = parseInt(stepCard.getAttribute('data-agent-id'));
         
         // Убираем все классы
         stepCard.classList.remove('active', 'completed');
         
-        if (completedAgentIds.includes(agent.id)) {
+        if (completedAgentIds.includes(agentId)) {
             // Завершено
             stepCard.classList.add('completed');
             stepStatus.textContent = 'Завершено';
-        } else if (activeAgentId === agent.id) {
+        } else if (activeAgentId === agentId) {
             // В процессе
             stepCard.classList.add('active');
             stepStatus.textContent = 'Обработка...';
@@ -187,3 +251,5 @@ function updateWorkflow(activeAgentId, completedAgentIds) {
         }
     });
 }
+
+// Workflow панель показывается только после получения данных от бэкенда

@@ -1,0 +1,50 @@
+{
+  "gui_session_20260111052002": {
+    "chat_id": "gui_session_20260111052002",
+    "title": null,
+    "created_at": "2026-01-11T05:20:02.698121",
+    "last_activity": "2026-01-11T05:20:02.698121",
+    "workflow_chain": null,
+    "documents": []
+  },
+  "gui_session_20260111052101": {
+    "chat_id": "gui_session_20260111052101",
+    "title": null,
+    "created_at": "2026-01-11T05:21:01.826136",
+    "last_activity": "2026-01-11T05:21:01.826136",
+    "workflow_chain": null,
+    "documents": []
+  },
+  "gui_session_20260111052736": {
+    "chat_id": "gui_session_20260111052736",
+    "title": null,
+    "created_at": "2026-01-11T05:27:36.333003",
+    "last_activity": "2026-01-11T05:27:36.333003",
+    "workflow_chain": null,
+    "documents": []
+  },
+  "gui_session_20260111053609": {
+    "chat_id": "gui_session_20260111053609",
+    "title": null,
+    "created_at": "2026-01-11T05:36:09.407965",
+    "last_activity": "2026-01-11T05:36:09.407965",
+    "workflow_chain": null,
+    "documents": []
+  },
+  "gui_session_20260111053828": {
+    "chat_id": "gui_session_20260111053828",
+    "title": null,
+    "created_at": "2026-01-11T05:38:28.860569",
+    "last_activity": "2026-01-11T05:38:28.860569",
+    "workflow_chain": null,
+    "documents": []
+  },
+  "gui_session_20260111054147": {
+    "chat_id": "gui_session_20260111054147",
+    "title": null,
+    "created_at": "2026-01-11T05:41:47.125458",
+    "last_activity": "2026-01-11T05:41:47.125458",
+    "workflow_chain": null,
+    "documents": []
+  }
+}
