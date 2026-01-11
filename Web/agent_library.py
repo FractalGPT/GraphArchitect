@@ -13,12 +13,12 @@ AGENT_LIBRARY = {
         type="classification",
         icon="🤖",
         color="#10b981",
-        specialization="Высокоточная классификация с использованием GPT-4",
-        capabilities=["advanced_nlp", "context_understanding", "multi_language"],
+        specialization="Высокоточная классификация",
+        capabilities=["advanced_nlp"],
+        cost=0.03,
         metrics={
             "avgResponseTime": 2800,
-            "successRate": 0.96,
-            "avgScore": 0.92
+            "avgScore": 0.98
         }
     ),
     "agent-classifier-claude": Agent(
@@ -27,12 +27,12 @@ AGENT_LIBRARY = {
         type="classification",
         icon="🧠",
         color="#6366f1",
-        specialization="Глубокое понимание контекста с Claude",
-        capabilities=["reasoning", "nuance_detection", "accuracy"],
+        specialization="Глубокое понимание контекста",
+        capabilities=["reasoning"],
+        cost=0.02,
         metrics={
             "avgResponseTime": 3200,
-            "successRate": 0.94,
-            "avgScore": 0.90
+            "avgScore": 0.95
         }
     ),
     "agent-classifier-local": Agent(
@@ -41,11 +41,11 @@ AGENT_LIBRARY = {
         type="classification",
         icon="💻",
         color="#8b5cf6",
-        specialization="Быстрая локальная классификация",
-        capabilities=["fast_processing", "offline", "privacy"],
+        specialization="Быстрая локальная обработка",
+        capabilities=["privacy"],
+        cost=0.001,
         metrics={
             "avgResponseTime": 1200,
-            "successRate": 0.82,
             "avgScore": 0.78
         }
     ),
@@ -55,11 +55,11 @@ AGENT_LIBRARY = {
         type="classification",
         icon="⚡",
         color="#eab308",
-        specialization="Сверхбыстрая классификация",
-        capabilities=["ultra_fast", "basic_nlp"],
+        specialization="Сверхбыстрый анализ",
+        capabilities=["speed"],
+        cost=0.005,
         metrics={
             "avgResponseTime": 800,
-            "successRate": 0.75,
             "avgScore": 0.72
         }
     ),
@@ -71,11 +71,11 @@ AGENT_LIBRARY = {
         type="content_generation",
         icon="🎨",
         color="#ec4899",
-        specialization="Творческие и оригинальные ответы",
-        capabilities=["creative_writing", "storytelling", "engagement"],
+        specialization="Творческие ответы",
+        capabilities=["storytelling"],
+        cost=0.025,
         metrics={
             "avgResponseTime": 4200,
-            "successRate": 0.87,
             "avgScore": 0.85
         }
     ),
@@ -85,11 +85,11 @@ AGENT_LIBRARY = {
         type="content_generation",
         icon="📋",
         color="#3b82f6",
-        specialization="Формальные и профессиональные ответы",
-        capabilities=["professional_tone", "accuracy", "clarity"],
+        specialization="Профессиональный тон",
+        capabilities=["clarity"],
+        cost=0.02,
         metrics={
             "avgResponseTime": 3800,
-            "successRate": 0.91,
             "avgScore": 0.88
         }
     ),
@@ -99,11 +99,11 @@ AGENT_LIBRARY = {
         type="content_generation",
         icon="⚙️",
         color="#64748b",
-        specialization="Технические и детальные объяснения",
-        capabilities=["technical_writing", "precision", "documentation"],
+        specialization="Детальные объяснения",
+        capabilities=["documentation"],
+        cost=0.035,
         metrics={
             "avgResponseTime": 5100,
-            "successRate": 0.89,
             "avgScore": 0.86
         }
     ),
@@ -113,12 +113,12 @@ AGENT_LIBRARY = {
         type="content_generation",
         icon="😊",
         color="#f59e0b",
-        specialization="Дружелюбные и эмпатичные ответы",
-        capabilities=["empathy", "warmth", "customer_satisfaction"],
+        specialization="Эмпатичные ответы",
+        capabilities=["empathy"],
+        cost=0.015,
         metrics={
             "avgResponseTime": 3500,
-            "successRate": 0.93,
-            "avgScore": 0.91
+            "avgScore": 0.92
         }
     ),
     
@@ -129,12 +129,12 @@ AGENT_LIBRARY = {
         type="quality_assurance",
         icon="🔍",
         color="#ef4444",
-        specialization="Строгая проверка качества",
-        capabilities=["thorough_review", "high_standards", "detail_oriented"],
+        specialization="Строгая проверка",
+        capabilities=["thorough_review"],
+        cost=0.01,
         metrics={
             "avgResponseTime": 2800,
-            "successRate": 0.88,
-            "avgScore": 0.84
+            "avgScore": 0.99
         }
     ),
     "agent-qa-balanced": Agent(
@@ -143,11 +143,11 @@ AGENT_LIBRARY = {
         type="quality_assurance",
         icon="⚖️",
         color="#10b981",
-        specialization="Сбалансированная проверка",
-        capabilities=["balanced_approach", "practical", "efficient"],
+        specialization="Сбалансированный анализ",
+        capabilities=["efficiency"],
+        cost=0.008,
         metrics={
             "avgResponseTime": 2100,
-            "successRate": 0.90,
             "avgScore": 0.87
         }
     ),
@@ -157,11 +157,11 @@ AGENT_LIBRARY = {
         type="quality_assurance",
         icon="🚀",
         color="#eab308",
-        specialization="Быстрая проверка",
-        capabilities=["speed", "basic_checks", "automated"],
+        specialization="Быстрый аудит",
+        capabilities=["automated"],
+        cost=0.005,
         metrics={
             "avgResponseTime": 1400,
-            "successRate": 0.79,
             "avgScore": 0.76
         }
     ),
@@ -173,11 +173,11 @@ AGENT_LIBRARY = {
         type="code_analysis",
         icon="⚡",
         color="#eab308",
-        specialization="Быстрый парсинг кода",
-        capabilities=["fast_parsing", "basic_ast", "syntax_check"],
+        specialization="Быстрый парсинг",
+        capabilities=["syntax_check"],
+        cost=0.005,
         metrics={
             "avgResponseTime": 1100,
-            "successRate": 0.85,
             "avgScore": 0.80
         }
     ),
@@ -187,11 +187,11 @@ AGENT_LIBRARY = {
         type="code_analysis",
         icon="🔬",
         color="#8b5cf6",
-        specialization="Глубокий анализ структуры",
-        capabilities=["deep_analysis", "full_ast", "dependencies"],
+        specialization="Глубокий анализ AST",
+        capabilities=["dependencies"],
+        cost=0.04,
         metrics={
             "avgResponseTime": 4500,
-            "successRate": 0.95,
             "avgScore": 0.93
         }
     ),
@@ -201,11 +201,11 @@ AGENT_LIBRARY = {
         type="code_analysis",
         icon="📊",
         color="#06b6d4",
-        specialization="Инкрементальный парсинг",
-        capabilities=["incremental", "caching", "efficient"],
+        specialization="Инкрементальная обработка",
+        capabilities=["caching"],
+        cost=0.015,
         metrics={
             "avgResponseTime": 1800,
-            "successRate": 0.88,
             "avgScore": 0.84
         }
     ),
@@ -217,11 +217,11 @@ AGENT_LIBRARY = {
         type="code_analysis",
         icon="🛡️",
         color="#ef4444",
-        specialization="Поиск уязвимостей безопасности",
-        capabilities=["vulnerability_detection", "security_best_practices"],
+        specialization="Поиск уязвимостей",
+        capabilities=["vulnerability_detection"],
+        cost=0.05,
         metrics={
             "avgResponseTime": 5200,
-            "successRate": 0.92,
             "avgScore": 0.90
         }
     ),
@@ -232,10 +232,10 @@ AGENT_LIBRARY = {
         icon="📈",
         color="#10b981",
         specialization="Анализ производительности",
-        capabilities=["performance_optimization", "bottleneck_detection"],
+        capabilities=["bottleneck_detection"],
+        cost=0.045,
         metrics={
             "avgResponseTime": 4800,
-            "successRate": 0.89,
             "avgScore": 0.87
         }
     ),
@@ -245,11 +245,11 @@ AGENT_LIBRARY = {
         type="code_analysis",
         icon="✨",
         color="#ec4899",
-        specialization="Проверка стиля кода",
-        capabilities=["style_enforcement", "code_formatting", "conventions"],
+        specialization="Проверка стиля",
+        capabilities=["formatting"],
+        cost=0.01,
         metrics={
             "avgResponseTime": 2200,
-            "successRate": 0.94,
             "avgScore": 0.89
         }
     ),
@@ -259,11 +259,11 @@ AGENT_LIBRARY = {
         type="code_analysis",
         icon="🐛",
         color="#f59e0b",
-        specialization="Обнаружение потенциальных багов",
-        capabilities=["bug_detection", "static_analysis", "pattern_matching"],
+        specialization="Обнаружение багов",
+        capabilities=["pattern_matching"],
+        cost=0.03,
         metrics={
             "avgResponseTime": 3900,
-            "successRate": 0.88,
             "avgScore": 0.85
         }
     ),
@@ -273,11 +273,11 @@ AGENT_LIBRARY = {
         type="code_analysis",
         icon="🧮",
         color="#6366f1",
-        specialization="Анализ сложности кода",
-        capabilities=["complexity_metrics", "maintainability_index"],
+        specialization="Анализ сложности",
+        capabilities=["maintainability"],
+        cost=0.02,
         metrics={
             "avgResponseTime": 3200,
-            "successRate": 0.91,
             "avgScore": 0.88
         }
     ),
@@ -290,10 +290,10 @@ AGENT_LIBRARY = {
         icon="📄",
         color="#3b82f6",
         specialization="Детальные отчеты",
-        capabilities=["comprehensive_reports", "detailed_analysis"],
+        capabilities=["analysis"],
+        cost=0.025,
         metrics={
             "avgResponseTime": 3600,
-            "successRate": 0.90,
             "avgScore": 0.88
         }
     ),
@@ -304,10 +304,10 @@ AGENT_LIBRARY = {
         icon="📝",
         color="#10b981",
         specialization="Краткие сводки",
-        capabilities=["concise_summaries", "key_points"],
+        capabilities=["key_points"],
+        cost=0.01,
         metrics={
             "avgResponseTime": 2100,
-            "successRate": 0.87,
             "avgScore": 0.84
         }
     ),
@@ -318,10 +318,10 @@ AGENT_LIBRARY = {
         icon="🎯",
         color="#ec4899",
         specialization="Интерактивные отчеты",
-        capabilities=["interactive_visualizations", "drill_down"],
+        capabilities=["drill_down"],
+        cost=0.045,
         metrics={
             "avgResponseTime": 4200,
-            "successRate": 0.92,
             "avgScore": 0.91
         }
     ),
@@ -333,11 +333,11 @@ AGENT_LIBRARY = {
         type="research",
         icon="🌐",
         color="#06b6d4",
-        specialization="Сбор информации из интернета",
-        capabilities=["web_scraping", "data_extraction", "real_time_info"],
+        specialization="Сбор данных",
+        capabilities=["extraction"],
+        cost=0.015,
         metrics={
             "avgResponseTime": 4500,
-            "successRate": 0.86,
             "avgScore": 0.83
         }
     ),
@@ -347,11 +347,11 @@ AGENT_LIBRARY = {
         type="research",
         icon="🎓",
         color="#8b5cf6",
-        specialization="Поиск научных источников",
-        capabilities=["academic_search", "citation_management", "credibility"],
+        specialization="Научные источники",
+        capabilities=["credibility"],
+        cost=0.06,
         metrics={
             "avgResponseTime": 5800,
-            "successRate": 0.93,
             "avgScore": 0.92
         }
     ),
@@ -362,10 +362,10 @@ AGENT_LIBRARY = {
         icon="📊",
         color="#10b981",
         specialization="Анализ трендов",
-        capabilities=["trend_analysis", "social_listening", "insights"],
+        capabilities=["insights"],
+        cost=0.03,
         metrics={
             "avgResponseTime": 3900,
-            "successRate": 0.88,
             "avgScore": 0.86
         }
     ),
@@ -375,11 +375,11 @@ AGENT_LIBRARY = {
         type="planning",
         icon="🗂️",
         color="#64748b",
-        specialization="Структурированные планы",
-        capabilities=["logical_structure", "hierarchical_organization"],
+        specialization="Структурные планы",
+        capabilities=["logic"],
+        cost=0.01,
         metrics={
             "avgResponseTime": 2800,
-            "successRate": 0.91,
             "avgScore": 0.89
         }
     ),
@@ -390,10 +390,10 @@ AGENT_LIBRARY = {
         icon="💡",
         color="#f59e0b",
         specialization="Креативные структуры",
-        capabilities=["creative_organization", "unique_perspectives"],
+        capabilities=["perspectives"],
+        cost=0.02,
         metrics={
             "avgResponseTime": 3300,
-            "successRate": 0.85,
             "avgScore": 0.84
         }
     ),
@@ -403,11 +403,11 @@ AGENT_LIBRARY = {
         type="planning",
         icon="🔍",
         color="#10b981",
-        specialization="SEO-оптимизированные структуры",
-        capabilities=["seo_optimization", "keyword_placement", "search_intent"],
+        specialization="SEO-структуры",
+        capabilities=["keywords"],
+        cost=0.015,
         metrics={
             "avgResponseTime": 3100,
-            "successRate": 0.89,
             "avgScore": 0.87
         }
     ),
@@ -417,11 +417,11 @@ AGENT_LIBRARY = {
         type="writing",
         icon="🖋️",
         color="#3b82f6",
-        specialization="Формальный стиль письма",
-        capabilities=["formal_writing", "professional_tone", "accuracy"],
+        specialization="Формальный стиль",
+        capabilities=["accuracy"],
+        cost=0.03,
         metrics={
             "avgResponseTime": 6200,
-            "successRate": 0.90,
             "avgScore": 0.88
         }
     ),
@@ -432,10 +432,10 @@ AGENT_LIBRARY = {
         icon="✍️",
         color="#ec4899",
         specialization="Неформальный стиль",
-        capabilities=["conversational_tone", "relatability", "engagement"],
+        capabilities=["relatability"],
+        cost=0.025,
         metrics={
             "avgResponseTime": 5100,
-            "successRate": 0.86,
             "avgScore": 0.84
         }
     ),
@@ -446,10 +446,10 @@ AGENT_LIBRARY = {
         icon="⚙️",
         color="#64748b",
         specialization="Техническая документация",
-        capabilities=["technical_writing", "precision", "clarity"],
+        capabilities=["precision"],
+        cost=0.045,
         metrics={
             "avgResponseTime": 7200,
-            "successRate": 0.92,
             "avgScore": 0.90
         }
     ),
@@ -460,10 +460,10 @@ AGENT_LIBRARY = {
         icon="📖",
         color="#8b5cf6",
         specialization="Повествовательный стиль",
-        capabilities=["storytelling", "emotional_connection", "narrative"],
+        capabilities=["narrative"],
+        cost=0.035,
         metrics={
             "avgResponseTime": 6800,
-            "successRate": 0.88,
             "avgScore": 0.87
         }
     ),
@@ -474,10 +474,10 @@ AGENT_LIBRARY = {
         icon="✅",
         color="#10b981",
         specialization="Проверка грамматики",
-        capabilities=["grammar_check", "spelling", "punctuation"],
+        capabilities=["spelling"],
+        cost=0.005,
         metrics={
             "avgResponseTime": 2400,
-            "successRate": 0.95,
             "avgScore": 0.92
         }
     ),
@@ -488,10 +488,10 @@ AGENT_LIBRARY = {
         icon="✨",
         color="#ec4899",
         specialization="Улучшение стиля",
-        capabilities=["style_enhancement", "readability", "flow"],
+        capabilities=["flow"],
+        cost=0.015,
         metrics={
             "avgResponseTime": 3600,
-            "successRate": 0.89,
             "avgScore": 0.87
         }
     ),
@@ -502,10 +502,10 @@ AGENT_LIBRARY = {
         icon="🔍",
         color="#eab308",
         specialization="Проверка фактов",
-        capabilities=["fact_verification", "source_validation", "accuracy"],
+        capabilities=["accuracy"],
+        cost=0.04,
         metrics={
             "avgResponseTime": 4800,
-            "successRate": 0.91,
             "avgScore": 0.90
         }
     ),

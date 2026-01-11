@@ -98,10 +98,8 @@ class WorkflowSimulator:
                     "score": winner["score"]
                 })
                 
-                # Пауза для анимации
-                for _ in range(15):
-                    if not self.is_running: break
-                    await asyncio.sleep(0.1)
+                # Небольшая пауза перед "вторым проходом"
+                await asyncio.sleep(1.0)
                 
                 if not self.is_running: break
                 
@@ -135,9 +133,15 @@ class WorkflowSimulator:
                 # Workflow завершен
                 self.is_running = False
                 
+                # Генерируем финальный ответ
+                final_answer = f"Граф '{self.workflow.name}' успешно выполнен. " \
+                              f"Все {len(self.workflow.steps)} этапов завершены. " \
+                              f"Итоговый результат сформирован и проверен."
+
                 await self.emit("workflow_completed", {
                     "type": "workflow_completed",
                     "workflowId": self.workflow.chat_id,
+                    "finalAnswer": final_answer,
                     "results": [
                         {
                             "stepId": s.id,

@@ -10,57 +10,34 @@ class WorkflowVisualizer {
         this.timerInterval = null;
         this.agentsLibrary = {};
         
+        this.currentExecutionBlock = null;
+        this.currentExecutionContent = null;
+        this.isWorkflowFinished = false;
+        
         this.init();
     }
     
     init() {
         console.log('🚀 Initializing Workflow Visualizer');
-        
-        // Connect to Socket.IO
         this.connectWebSocket();
-        
-        // Load agent library
         this.loadAgentLibrary();
-        
-        // Setup event listeners
         this.setupEventListeners();
     }
     
     connectWebSocket() {
-        console.log('🔌 Connecting to WebSocket...');
-        
-        // Подключение к Socket.IO (на корневом уровне /socket.io/)
         this.socket = io({
-            path: '/socket.io', // Убрал лишний слеш в конце для надежности
+            path: '/socket.io',
             transports: ['websocket', 'polling'],
             reconnection: true,
             reconnectionDelay: 1000,
-            reconnectionAttempts: 10,
-            timeout: 20000
+            reconnectionAttempts: 10
         });
         
         this.socket.on('connect', () => {
-            console.log('✅ WebSocket connected! ID:', this.socket.id);
-            this.addLog('success', '✅ Соединение с сервером установлено');
+            console.log('✅ WebSocket connected!');
             document.getElementById('stat-status').textContent = 'Connected';
-            document.getElementById('stat-status').className = 'stat-value status-completed';
         });
         
-        this.socket.on('connect_error', (error) => {
-            console.error('❌ Connection error:', error);
-            this.addLog('error', `❌ Ошибка подключения: ${error.message}`);
-            document.getElementById('stat-status').textContent = 'Conn Error';
-            document.getElementById('stat-status').className = 'stat-value status-idle';
-        });
-        
-        this.socket.on('disconnect', (reason) => {
-            console.log('❌ WebSocket disconnected:', reason);
-            this.addLog('warning', `⚠️ Отключено от сервера: ${reason}`);
-            this.stopTimer();
-            this.resetUI();
-        });
-        
-        // Workflow events
         this.socket.on('workflow_info', (data) => this.onWorkflowInfo(data));
         this.socket.on('step_started', (data) => this.onStepStarted(data));
         this.socket.on('agent_progress', (data) => this.onAgentProgress(data));
@@ -71,269 +48,261 @@ class WorkflowVisualizer {
         this.socket.on('workflow_completed', (data) => this.onWorkflowCompleted(data));
         this.socket.on('workflow_stopped', (data) => this.onWorkflowStopped(data));
         this.socket.on('workflow_error', (data) => this.onWorkflowError(data));
-        this.socket.on('error', (data) => this.onError(data));
     }
     
     async loadAgentLibrary() {
         try {
             const response = await fetch('/api/agents-library');
             const data = await response.json();
-            
-            data.agents.forEach(agent => {
-                this.agentsLibrary[agent.id] = agent;
-            });
-            
+            data.agents.forEach(agent => this.agentsLibrary[agent.id] = agent);
             this.renderAgentLibrary(data.agents);
-            console.log(`📚 Loaded ${data.agents.length} agents`);
         } catch (error) {
             console.error('Error loading agents:', error);
         }
     }
     
     setupEventListeners() {
-        // Template selector
         document.getElementById('template-selector').addEventListener('change', (e) => {
-            const templateValue = e.target.value;
-            document.getElementById('start-btn').disabled = !templateValue;
+            document.getElementById('start-btn').disabled = !e.target.value;
         });
         
-        // Start button
-        document.getElementById('start-btn').addEventListener('click', () => {
-            this.startWorkflow();
-        });
-        
-        // Stop button
-        document.getElementById('stop-btn').addEventListener('click', () => {
-            this.stopWorkflow();
-        });
-        
-        // Clear logs
-        document.getElementById('clear-logs-btn').addEventListener('click', () => {
-            this.clearLogs();
-        });
-        
-        // Agent search
-        document.getElementById('agent-search').addEventListener('input', (e) => {
-            this.filterAgentLibrary(e.target.value);
-        });
+        document.getElementById('start-btn').addEventListener('click', () => this.startWorkflow());
+        document.getElementById('stop-btn').addEventListener('click', () => this.stopWorkflow());
+        document.getElementById('agent-search').addEventListener('input', (e) => this.filterAgentLibrary(e.target.value));
     }
     
     // === Workflow Control ===
     
-    startWorkflow() {
-        const template = document.getElementById('template-selector').value;
+    startWorkflow(customTemplate = null) {
+        const template = customTemplate || document.getElementById('template-selector').value;
         if (!template) return;
         
-        console.log(`▶️ Starting workflow: ${template}`);
-        this.addLog('info', `Запуск workflow: ${template}`);
+        document.getElementById('welcome-message').style.display = 'none';
         
         this.socket.emit('start_workflow', {
             template: template,
-            chat_id: `workflow_${Date.now()}`
+            chat_id: `wf_${Date.now()}`
         });
         
         this.startTime = Date.now();
         this.startTimer();
+        this.isWorkflowFinished = false;
         
-        // UI updates
         document.getElementById('start-btn').disabled = true;
         document.getElementById('stop-btn').disabled = false;
-        document.getElementById('template-selector').disabled = true;
         document.getElementById('stat-status').textContent = 'Running';
-        document.getElementById('stat-status').className = 'stat-value status-running';
     }
-    
+
+    startWorkflowFromChat(message) {
+        this.addUserMessage(message);
+        
+        let template = 'customer_support';
+        if (message.toLowerCase().includes('код')) template = 'code_review';
+        if (message.toLowerCase().includes('текст') || message.toLowerCase().includes('стать')) template = 'content_creation';
+        
+        this.startWorkflow(template);
+    }
+
+    addUserMessage(text) {
+        const chatMessages = document.getElementById('chat-messages');
+        const msgDiv = document.createElement('div');
+        msgDiv.className = 'message user-message';
+        msgDiv.textContent = text;
+        chatMessages.appendChild(msgDiv);
+        chatMessages.scrollTop = chatMessages.scrollHeight;
+    }
+
+    addAssistantMessage(text, agentName = "Архитектор") {
+        const chatMessages = document.getElementById('chat-messages');
+        const msgDiv = document.createElement('div');
+        msgDiv.className = 'message assistant-message';
+        msgDiv.innerHTML = `<strong>${agentName}:</strong><br>${text}`;
+        chatMessages.appendChild(msgDiv);
+        chatMessages.scrollTop = chatMessages.scrollHeight;
+    }
+
     stopWorkflow() {
         if (this.currentWorkflow) {
-            console.log('⏹️ Stopping workflow');
-            this.socket.emit('stop_workflow', {
-                workflow_id: this.currentWorkflow.workflowId
-            });
-            
+            this.socket.emit('stop_workflow', { workflow_id: this.currentWorkflow.workflowId });
             this.stopTimer();
             this.resetUI();
         }
     }
     
+    // === Logging & Collapsible Blocks ===
+    
+    addLog(type, message) {
+        if (!this.currentExecutionBlock || this.isWorkflowFinished) {
+            this.createNewExecutionBlock();
+        }
+
+        const logEntry = document.createElement('div');
+        logEntry.style.padding = '4px 0';
+        logEntry.style.borderBottom = '1px solid #f1f1f1';
+        
+        const time = new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit', second:'2-digit'});
+        logEntry.innerHTML = `<span style="color: #adb5bd; margin-right: 8px;">[${time}]</span> <span>${message}</span>`;
+        
+        this.currentExecutionContent.appendChild(logEntry);
+        this.currentExecutionContent.scrollTop = this.currentExecutionContent.scrollHeight;
+        
+        document.getElementById('chat-messages').scrollTop = document.getElementById('chat-messages').scrollHeight;
+    }
+
+    createNewExecutionBlock() {
+        const chatMessages = document.getElementById('chat-messages');
+        const block = document.createElement('div');
+        block.className = 'execution-block';
+        
+        block.innerHTML = `
+            <div class="execution-header">
+                <span class="exec-title" style="font-weight: 600;">⚙️ Выполнение графа агентов...</span>
+                <span class="toggle-icon">▼</span>
+            </div>
+            <div class="execution-content"></div>
+        `;
+        
+        chatMessages.appendChild(block);
+        this.currentExecutionBlock = block;
+        this.currentExecutionContent = block.querySelector('.execution-content');
+        this.isWorkflowFinished = false;
+        
+        block.querySelector('.execution-header').onclick = () => {
+            block.classList.toggle('collapsed');
+            const icon = block.querySelector('.toggle-icon');
+            icon.textContent = block.classList.contains('collapsed') ? '►' : '▼';
+        };
+    }
+
     // === WebSocket Event Handlers ===
     
     onWorkflowInfo(data) {
-        console.log('📋 Workflow info received:', data);
         this.currentWorkflow = data;
-        
-        document.getElementById('workflow-name').textContent = data.name;
-        document.getElementById('workflow-description').textContent = data.description;
-        
         this.renderWorkflowSteps(data.steps);
-        this.addLog('info', `Workflow создан: ${data.steps.length} шагов`);
+        this.addLog('info', `✅ Сгенерирован граф: ${data.name}`);
     }
     
     onStepStarted(data) {
-        console.log(`📍 Step started: ${data.stepName}`);
         this.currentStepIndex = data.stepIndex;
-        
-        // Update UI
         this.updateStepStatus(data.stepIndex, 'in-progress');
-        document.getElementById('current-step-name').textContent = `Шаг ${data.stepIndex + 1}: ${data.stepName}`;
+        document.getElementById('current-step-name').textContent = data.stepName;
         document.getElementById('stat-current-step').textContent = `${data.stepIndex + 1}/${this.currentWorkflow.steps.length}`;
         
-        // Clear competing agents panel
         document.getElementById('competing-agents').innerHTML = '';
-        
-        // Add candidate agents
         data.candidateAgents.forEach(agentId => {
             const agent = this.agentsLibrary[agentId];
-            if (agent) {
-                this.addCompetingAgent(agent);
-            }
+            if (agent) this.addCompetingAgent(agent);
         });
         
-        this.addLog('info', `Шаг ${data.stepIndex + 1}: ${data.stepName} - конкурс ${data.candidateAgents.length} агентов`);
+        this.addLog('info', `📍 Шаг: ${data.stepName}`);
     }
     
     onAgentProgress(data) {
         const agentCard = document.querySelector(`[data-agent-id="${data.agentId}"]`);
-        if (agentCard) {
-            const progressBar = agentCard.querySelector('.progress-bar');
-            const progressText = agentCard.querySelector('.progress-text');
-            
-            if (progressBar) {
-                progressBar.style.width = `${data.progress}%`;
-            }
-            if (progressText) {
-                progressText.textContent = `${data.progress}%`;
-            }
+        if (agentCard && !agentCard.classList.contains('winner')) {
+            agentCard.querySelector('.progress-bar').style.width = `${data.progress}%`;
+            agentCard.querySelector('.progress-text').textContent = `${data.progress}%`;
         }
     }
     
     onAgentScoreUpdated(data) {
-        console.log(`⭐ Score updated for ${data.agentId}: ${data.score}`);
-        
         const agentCard = document.querySelector(`[data-agent-id="${data.agentId}"]`);
         if (agentCard) {
             const scoreValue = agentCard.querySelector('.metric-value.score');
-            if (scoreValue) {
-                scoreValue.textContent = data.score.toFixed(3);
-                
-                // Flash animation
-                agentCard.style.animation = 'none';
-                setTimeout(() => {
-                    agentCard.style.animation = '';
-                }, 10);
-            }
+            if (scoreValue) scoreValue.textContent = (data.score * 100).toFixed(0) + '%';
         }
-        
-        // Update leader
         this.updateLeader(data.agents);
     }
     
     updateLeader(agents) {
-        // Remove all leader classes
         document.querySelectorAll('.agent-competing-card').forEach(card => {
-            card.classList.remove('leading');
-            const badge = card.querySelector('.agent-status-badge');
-            if (badge && badge.classList.contains('leading')) {
-                badge.className = 'agent-status-badge competing';
-                badge.textContent = 'Competing';
+            if (!card.classList.contains('winner')) {
+                card.classList.remove('leading');
             }
         });
-        
-        // Find leader (highest score)
         let leader = null;
         let maxScore = -1;
-        
         agents.forEach(agent => {
             if (agent.score !== null && agent.score > maxScore) {
                 maxScore = agent.score;
                 leader = agent.agentId;
             }
         });
-        
         if (leader) {
             const leaderCard = document.querySelector(`[data-agent-id="${leader}"]`);
-            if (leaderCard) {
+            if (leaderCard && !leaderCard.classList.contains('winner')) {
                 leaderCard.classList.add('leading');
-                const badge = leaderCard.querySelector('.agent-status-badge');
-                if (badge) {
-                    badge.className = 'agent-status-badge leading';
-                    badge.textContent = '🏆 Leading';
-                }
             }
         }
     }
     
     onAgentSelected(data) {
-        console.log(`🎯 Winner selected: ${data.winnerId}`);
-        this.addLog('success', `Победитель: ${this.agentsLibrary[data.winnerId]?.name} (score: ${data.score.toFixed(3)})`);
+        const winner = this.agentsLibrary[data.winnerId];
+        this.addLog('success', `🎯 Выбран агент: ${winner.name} (${(data.score * 100).toFixed(0)}%)`);
         
-        // Mark winner
         document.querySelectorAll('.agent-competing-card').forEach(card => {
-            const agentId = card.getAttribute('data-agent-id');
+            const cardId = card.getAttribute('data-agent-id');
+            card.classList.remove('competing', 'leading');
             
-            if (agentId === data.winnerId) {
-                card.classList.remove('competing', 'leading');
+            if (cardId === data.winnerId) {
                 card.classList.add('winner');
                 const badge = card.querySelector('.agent-status-badge');
                 if (badge) {
+                    badge.textContent = '⚙️ Executing';
                     badge.className = 'agent-status-badge winner';
-                    badge.textContent = '👑 Winner';
                 }
+                // СБРОС ПРОГРЕССА ДЛЯ "ВТОРОГО ПРОХОДА"
+                const progressBar = card.querySelector('.progress-bar');
+                const progressText = card.querySelector('.progress-text');
+                if (progressBar) progressBar.style.width = '0%';
+                if (progressText) progressText.textContent = '0%';
             } else {
                 card.classList.add('eliminated');
+                const badge = card.querySelector('.agent-status-badge');
+                if (badge) badge.textContent = 'Eliminated';
             }
         });
         
-        // After animation, keep only winner
+        // Удаляем проигравших через 1.5 секунды
         setTimeout(() => {
             document.querySelectorAll('.agent-competing-card.eliminated').forEach(card => {
-                card.remove();
+                card.style.display = 'none';
             });
         }, 1500);
     }
     
     onAgentExecuting(data) {
         const agentCard = document.querySelector(`[data-agent-id="${data.agentId}"]`);
-        if (agentCard) {
-            // Update progress during execution
+        if (agentCard && agentCard.classList.contains('winner')) {
             const progressBar = agentCard.querySelector('.progress-bar');
             const progressText = agentCard.querySelector('.progress-text');
             
-            if (progressBar) {
-                progressBar.style.width = `${data.progress}%`;
-            }
-            if (progressText) {
-                progressText.textContent = `${data.progress}%`;
-            }
+            if (progressBar) progressBar.style.width = `${data.progress}%`;
+            if (progressText) progressText.textContent = `${data.progress}%`;
             
-            // Add action log
-            const actionLog = agentCard.querySelector('.agent-action-log');
-            if (actionLog) {
-                actionLog.textContent = data.action;
-            } else {
-                // Create action log element
-                const logDiv = document.createElement('div');
-                logDiv.className = 'agent-action-log';
-                logDiv.style.fontSize = '11px';
-                logDiv.style.color = '#666';
-                logDiv.style.marginTop = '8px';
-                logDiv.textContent = data.action;
-                agentCard.querySelector('.agent-progress').appendChild(logDiv);
+            let actionLog = agentCard.querySelector('.agent-action-log');
+            if (!actionLog) {
+                actionLog = document.createElement('div');
+                actionLog.className = 'agent-action-log';
+                actionLog.style.fontSize = '11px';
+                actionLog.style.color = '#4c6ef5';
+                actionLog.style.marginTop = '8px';
+                actionLog.style.fontWeight = '600';
+                agentCard.querySelector('.agent-progress').appendChild(actionLog);
             }
+            actionLog.textContent = `▶ ${data.action}`;
         }
         
         if (data.progress === 100) {
-            this.addLog('success', `${this.agentsLibrary[data.agentId]?.name}: ${data.action}`);
+            this.addLog('success', `✨ ${this.agentsLibrary[data.agentId].name}: ${data.action}`);
         }
     }
     
     onStepCompleted(data) {
-        console.log(`✅ Step completed: ${data.stepId}`);
         this.updateStepStatus(this.currentStepIndex, 'completed');
-        this.addLog('success', `Шаг ${this.currentStepIndex + 1} завершен`);
-        
-        // Update progress
         const progress = Math.round(((this.currentStepIndex + 1) / this.currentWorkflow.steps.length) * 100);
         document.getElementById('stat-progress').textContent = `${progress}%`;
+        document.getElementById('stat-progress-fill').style.width = `${progress}%`;
     }
     
     onWorkflowCompleted(data) {
@@ -341,46 +310,35 @@ class WorkflowVisualizer {
         this.addLog('success', '🎉 Workflow успешно завершен!');
         
         this.stopTimer();
+        this.isWorkflowFinished = true;
         
-        document.getElementById('stat-status').textContent = 'Completed';
-        document.getElementById('stat-status').className = 'stat-value status-completed';
-        document.getElementById('stat-progress').textContent = '100%';
+        if (data.finalAnswer) {
+            setTimeout(() => {
+                this.addAssistantMessage(data.finalAnswer, "Графовый Архитектор");
+            }, 500);
+        }
         
-        // Reset buttons
         setTimeout(() => {
-            this.resetUI();
-        }, 3000);
+            if (this.currentExecutionBlock) {
+                this.currentExecutionBlock.classList.add('collapsed');
+                const title = this.currentExecutionBlock.querySelector('.exec-title');
+                const icon = this.currentExecutionBlock.querySelector('.toggle-icon');
+                if (title) title.textContent = '📑 Детали выполнения графа (нажмите для просмотра)';
+                if (icon) icon.textContent = '►';
+            }
+        }, 1500);
+        
+        document.getElementById('stat-status').textContent = 'Finished';
     }
     
-    onWorkflowStopped(data) {
-        console.log('🛑 Workflow stopped');
-        this.addLog('warning', '🛑 Workflow остановлен пользователем');
-        
-        this.stopTimer();
+    onWorkflowStopped() {
+        this.addLog('warning', '⏹ Граф остановлен');
         this.resetUI();
-        
-        document.getElementById('stat-status').textContent = 'Stopped';
-        document.getElementById('stat-status').className = 'stat-value status-idle';
     }
     
     onWorkflowError(data) {
-        console.error('❌ Workflow error:', data);
-        this.addLog('error', `❌ Ошибка workflow: ${data.error}`);
-        
-        this.stopTimer();
-        
-        document.getElementById('stat-status').textContent = 'Error';
-        document.getElementById('stat-status').className = 'stat-value status-idle';
-        
-        // Reset buttons after error
-        setTimeout(() => {
-            this.resetUI();
-        }, 3000);
-    }
-    
-    onError(data) {
-        console.error('Error:', data);
-        this.addLog('error', `Ошибка: ${data.message}`);
+        this.addLog('error', `❌ Ошибка: ${data.error}`);
+        this.resetUI();
     }
     
     // === UI Rendering ===
@@ -388,26 +346,12 @@ class WorkflowVisualizer {
     renderWorkflowSteps(steps) {
         const container = document.getElementById('workflow-steps');
         container.innerHTML = '';
-        
         steps.forEach((step, index) => {
-            // Step card
             const stepItem = document.createElement('div');
             stepItem.className = 'step-item';
             stepItem.setAttribute('data-step-index', index);
-            
-            const stepCard = document.createElement('div');
-            stepCard.className = 'step-card pending';
-            stepCard.innerHTML = `
-                <div class="step-number">${step.order}</div>
-                <div class="step-name">${step.name}</div>
-                <div class="step-desc">${step.description || ''}</div>
-                <div class="step-status">⏳</div>
-            `;
-            
-            stepItem.appendChild(stepCard);
+            stepItem.innerHTML = `<div class="step-card pending"><div class="step-name">${step.name}</div><div class="step-status">⏳</div></div>`;
             container.appendChild(stepItem);
-            
-            // Arrow between steps
             if (index < steps.length - 1) {
                 const arrow = document.createElement('div');
                 arrow.className = 'step-arrow';
@@ -420,176 +364,93 @@ class WorkflowVisualizer {
     updateStepStatus(stepIndex, status) {
         const stepItem = document.querySelector(`[data-step-index="${stepIndex}"]`);
         if (!stepItem) return;
-        
-        const stepCard = stepItem.querySelector('.step-card');
-        const stepStatus = stepItem.querySelector('.step-status');
-        
-        // Remove all status classes
-        stepCard.classList.remove('pending', 'in-progress', 'completed');
-        stepCard.classList.add(status);
-        
-        // Update status icon
-        if (status === 'in-progress') {
-            stepStatus.textContent = '⚡';
-            
-            // Animate arrows
-            const allArrows = document.querySelectorAll('.step-arrow');
-            if (allArrows[stepIndex]) {
-                allArrows[stepIndex].classList.add('active');
-            }
-        } else if (status === 'completed') {
-            stepStatus.textContent = '✅';
-        }
+        const card = stepItem.querySelector('.step-card');
+        card.classList.remove('pending', 'in-progress', 'completed');
+        card.classList.add(status);
+        stepItem.querySelector('.step-status').textContent = status === 'in-progress' ? '⚡' : (status === 'completed' ? '✅' : '⏳');
     }
     
     addCompetingAgent(agent) {
         const container = document.getElementById('competing-agents');
-        
-        const agentCard = document.createElement('div');
-        agentCard.className = 'agent-competing-card competing';
-        agentCard.setAttribute('data-agent-id', agent.id);
-        
-        agentCard.innerHTML = `
+        const card = document.createElement('div');
+        card.className = 'agent-competing-card competing';
+        card.setAttribute('data-agent-id', agent.id);
+        const cost = agent.cost || 0;
+        const quality = Math.round((agent.metrics?.avgScore || 0) * 100);
+        const time = agent.metrics?.avgResponseTime || 0;
+        card.innerHTML = `
             <div class="agent-card-header">
-                <div class="agent-avatar" style="background: ${agent.color}">
-                    ${agent.icon}
-                </div>
+                <div class="agent-avatar" style="background: ${agent.color}20; color: ${agent.color}">${agent.icon}</div>
                 <div class="agent-info-text">
                     <h4>${agent.name}</h4>
-                    <p>${agent.specialization || agent.type}</p>
+                    <div class="agent-badges-row">
+                        <span class="badge-cost">$${cost.toFixed(3)}</span>
+                        <span class="badge-quality">🏆 ${quality}%</span>
+                        <span class="badge-time">⏱️ ${time}ms</span>
+                    </div>
                 </div>
                 <div class="agent-status-badge competing">Competing</div>
             </div>
-            <div class="agent-metrics">
-                <div class="metric-item">
-                    <span class="metric-label">⭐ Score:</span>
-                    <span class="metric-value score">--</span>
-                </div>
-                <div class="metric-item">
-                    <span class="metric-label">⚡ Speed:</span>
-                    <span class="metric-value">${agent.metrics.avgResponseTime}ms</span>
-                </div>
-            </div>
             <div class="agent-progress">
-                <div class="agent-progress-label">
-                    <span>Progress</span>
-                    <span class="progress-text">0%</span>
-                </div>
-                <div class="progress-bar-container">
-                    <div class="progress-bar" style="width: 0%"></div>
+                <div class="progress-bar-container"><div class="progress-bar" style="width: 0%"></div></div>
+                <div style="display: flex; justify-content: space-between; margin-top: 5px;">
+                    <span style="font-size: 10px; color: #868e96;">Progress</span>
+                    <span class="progress-text" style="font-size: 10px; font-weight: 700; color: #4c6ef5;">0%</span>
                 </div>
             </div>
         `;
-        
-        container.appendChild(agentCard);
+        container.appendChild(card);
     }
     
     renderAgentLibrary(agents) {
         const container = document.getElementById('agent-library');
         container.innerHTML = '';
-        
         agents.forEach(agent => {
             const card = document.createElement('div');
             card.className = 'library-agent-card';
-            card.setAttribute('data-agent-id', agent.id);
-            card.setAttribute('data-agent-name', agent.name.toLowerCase());
-            card.setAttribute('data-agent-type', agent.type.toLowerCase());
-            
+            const cost = agent.cost || 0;
+            const quality = Math.round((agent.metrics?.avgScore || 0) * 100);
             card.innerHTML = `
-                <div class="library-agent-header">
-                    <div class="library-agent-avatar" style="background: ${agent.color}">
-                        ${agent.icon}
-                    </div>
-                    <div class="library-agent-info">
-                        <h5>${agent.name}</h5>
-                        <p>${agent.specialization}</p>
+                <div class="library-agent-avatar" style="background: ${agent.color}20; color: ${agent.color}">${agent.icon}</div>
+                <div class="library-agent-info">
+                    <h5>${agent.name}</h5>
+                    <div class="agent-badges-row">
+                        <span class="badge-cost">$${cost.toFixed(3)}</span>
+                        <span class="badge-quality">🏆 ${quality}%</span>
                     </div>
                 </div>
-                <div class="library-agent-type">${agent.type}</div>
             `;
-            
             container.appendChild(card);
         });
     }
     
-    filterAgentLibrary(searchTerm) {
-        const term = searchTerm.toLowerCase();
-        const cards = document.querySelectorAll('.library-agent-card');
-        
-        cards.forEach(card => {
-            const name = card.getAttribute('data-agent-name');
-            const type = card.getAttribute('data-agent-type');
-            
-            if (name.includes(term) || type.includes(term)) {
-                card.style.display = '';
-            } else {
-                card.style.display = 'none';
-            }
+    filterAgentLibrary(term) {
+        document.querySelectorAll('.library-agent-card').forEach(card => {
+            const name = card.querySelector('h5').textContent.toLowerCase();
+            card.style.display = name.includes(term.toLowerCase()) ? 'flex' : 'none';
         });
     }
-    
-    // === Logging ===
-    
-    addLog(type, message) {
-        const logsContainer = document.getElementById('execution-logs');
-        const logEntry = document.createElement('div');
-        logEntry.className = `log-entry log-${type}`;
-        
-        const time = new Date().toLocaleTimeString();
-        logEntry.innerHTML = `
-            <span class="log-time">${time}</span>
-            <span class="log-message">${message}</span>
-        `;
-        
-        logsContainer.appendChild(logEntry);
-        logsContainer.scrollTop = logsContainer.scrollHeight;
-    }
-    
-    clearLogs() {
-        document.getElementById('execution-logs').innerHTML = '';
-        this.addLog('info', 'Логи очищены');
-    }
-    
-    // === Timer ===
     
     startTimer() {
         this.timerInterval = setInterval(() => {
             const elapsed = Date.now() - this.startTime;
-            const seconds = Math.floor(elapsed / 1000);
-            const minutes = Math.floor(seconds / 60);
-            const remainingSeconds = seconds % 60;
-            
-            document.getElementById('stat-time').textContent = 
-                `${minutes}:${remainingSeconds.toString().padStart(2, '0')}`;
+            const s = Math.floor(elapsed / 1000);
+            document.getElementById('stat-time').textContent = `${Math.floor(s/60)}:${(s%60).toString().padStart(2,'0')}`;
         }, 1000);
     }
     
-    stopTimer() {
-        if (this.timerInterval) {
-            clearInterval(this.timerInterval);
-            this.timerInterval = null;
-        }
-    }
-    
-    // === UI Reset ===
+    stopTimer() { clearInterval(this.timerInterval); }
     
     resetUI() {
         document.getElementById('start-btn').disabled = false;
         document.getElementById('stop-btn').disabled = true;
-        document.getElementById('template-selector').disabled = false;
-        document.getElementById('stat-status').textContent = 'Idle';
-        document.getElementById('stat-status').className = 'stat-value status-idle';
-        document.getElementById('current-step-name').textContent = 'Ожидание начала...';
-        document.getElementById('competing-agents').innerHTML = `
-            <div class="no-agents-message">
-                <p>Выберите и запустите workflow для начала конкурентного выбора агентов</p>
-            </div>
-        `;
+        document.getElementById('stat-status').textContent = 'Готов';
+        document.getElementById('stat-progress').textContent = '0%';
+        document.getElementById('stat-progress-fill').style.width = '0%';
+        document.getElementById('competing-agents').innerHTML = '<div class="no-agents-message">Агенты появятся при работе шага</div>';
     }
 }
 
-// Initialize app when DOM is loaded
 document.addEventListener('DOMContentLoaded', () => {
-    const app = new WorkflowVisualizer();
-    window.workflowApp = app; // Expose for debugging
+    window.workflowApp = new WorkflowVisualizer();
 });

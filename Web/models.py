@@ -17,6 +17,7 @@ class Agent(BaseModel):
     type: str = "general"
     specialization: Optional[str] = None
     capabilities: List[str] = []
+    cost: float = 0.0  # Стоимость за операцию
     metrics: Dict[str, Any] = {}
 
 
