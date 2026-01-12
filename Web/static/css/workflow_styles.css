@@ -64,26 +64,41 @@ body {
 /* === Workflow Steps (Horizontal) === */
 .workflow-steps-container {
     background: var(--f-white);
-    padding: 20px 30px;
+    padding: 15px 30px;
     border-bottom: 1px solid var(--f-border);
 }
 
 .workflow-steps {
     display: flex;
-    gap: 20px;
+    gap: 15px;
     align-items: center;
     justify-content: center;
+    flex-wrap: nowrap;
+    overflow-x: auto;
 }
 
 .step-card {
     background: var(--f-white);
     border: 2px solid var(--f-border);
     border-radius: 14px;
-    padding: 15px 25px;
-    min-width: 180px;
+    padding: 12px 20px;
+    min-width: 150px;
     text-align: center;
     box-shadow: var(--f-shadow);
     transition: 0.3s;
+}
+
+@media (max-width: 1200px) {
+    .step-card {
+        padding: 8px 15px;
+        min-width: 120px;
+    }
+    .step-name {
+        font-size: 13px;
+    }
+    .workflow-steps-container {
+        padding: 10px;
+    }
 }
 
 .step-card.in-progress {
@@ -270,8 +285,25 @@ body {
     color: var(--f-blue);
 }
 
-/* === RICH AGENT CARDS (Вернул прогресс-бары) === */
-.competing-agents-list { padding: 15px; overflow-y: auto; flex: 1; }
+.agents-sidebar {
+    background: #fdfdfd;
+    display: flex;
+    flex-direction: column;
+}
+
+.agents-header {
+    background: #f8f9fa;
+    padding: 15px;
+    border-bottom: 1px solid #eee;
+    flex-shrink: 0;
+}
+
+.competing-agents-list { 
+    padding: 15px; 
+    overflow-y: auto; 
+    flex: 1; 
+    min-height: 0;
+}
 
 .agent-competing-card {
     background: var(--f-white);
@@ -338,14 +370,14 @@ body {
 
 /* === BOTTOM PANEL (Unified flow) === */
 .workflow-stats {
-    height: 60px;
+    height: 45px; /* Уменьшаем фиксированную высоту */
     background: var(--f-white);
     border-top: 1px solid var(--f-border);
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 0 30px;
-    flex-shrink: 0; /* Гарантирует, что панель не сожмется */
+    padding: 0 20px;
+    flex-shrink: 0;
     z-index: 10;
 }
 
@@ -353,9 +385,115 @@ body {
 .stat-label { font-size: 11px; font-weight: 800; color: var(--f-text-muted); text-transform: uppercase; }
 .stat-value { font-size: 16px; font-weight: 700; color: var(--f-blue); }
 
-.stat-progress-container { display: flex; align-items: center; gap: 15px; min-width: 300px; }
+.stat-progress-container { 
+    display: flex; 
+    align-items: center; 
+    gap: 15px; 
+    flex: 1; 
+    min-width: 100px; /* Уменьшено с 300px */
+}
 .stat-progress-bar { flex: 1; height: 10px; background: #e9ecef; border-radius: 20px; overflow: hidden; }
 .stat-progress-fill { height: 100%; background: var(--f-blue); width: 0%; transition: 0.5s; }
+
+/* === Execution Block (Logs) === */
+.execution-block {
+    background: #fff;
+    border: 1px solid #e9ecef;
+    border-radius: 12px;
+    margin: 10px 0;
+    overflow: hidden;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+    width: 100%;
+}
+
+.execution-header {
+    padding: 10px 15px;
+    background: #f8f9fa;
+    cursor: pointer;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 10px;
+}
+
+.exec-title {
+    font-size: 13px;
+    font-weight: 600;
+    color: #495057;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.execution-content {
+    padding: 12px 15px;
+    max-height: 300px;
+    overflow-y: auto;
+    font-family: 'Inter', -apple-system, sans-serif;
+    font-size: 12px;
+    line-height: 1.6;
+    background: #fff;
+}
+
+.execution-block.collapsed .execution-content {
+    display: none;
+}
+
+/* === Generation Log Compact (Inside Execution Block) === */
+.generation-log-compact {
+    background: #fdfdfe;
+    border: 1px solid #edf2ff;
+    border-radius: 10px;
+    padding: 12px;
+    margin-bottom: 15px;
+    box-shadow: inset 0 2px 4px rgba(0,0,0,0.02);
+}
+
+.gen-log-phases {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    margin-bottom: 10px;
+}
+
+.gen-log-item {
+    font-size: 12px;
+    color: #adb5bd;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 4px 8px;
+    border-radius: 6px;
+    transition: all 0.2s;
+}
+
+.gen-log-item.active {
+    background: #e7f5ff;
+    color: var(--f-blue);
+    font-weight: 600;
+}
+
+.gen-log-item.completed {
+    color: #40c057;
+}
+
+.gen-status {
+    font-size: 11px;
+}
+
+.gen-log-progress-bg {
+    height: 4px;
+    background: #f1f3f5;
+    border-radius: 2px;
+    overflow: hidden;
+}
+
+.gen-log-progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--f-blue), #748ffc);
+    width: 0%;
+    transition: width 0.3s ease;
+}
 
 /* === Animations === */
 @keyframes step-pulse {
@@ -378,4 +516,79 @@ body {
     0% { transform: scale(1); border-width: 2px; }
     50% { transform: scale(1.1); border-width: 4px; box-shadow: 0 0 30px rgba(64, 192, 87, 0.4); }
     100% { transform: scale(1.05); border-width: 3px; box-shadow: 0 0 20px rgba(64, 192, 87, 0.2); }
+}
+
+/* === File Chips Improvement === */
+.file-chips-container {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-bottom: 10px;
+}
+
+.file-chip {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: #f1f3f5;
+    padding: 6px 12px;
+    border-radius: 20px;
+    font-size: 13px;
+    border: 1px solid #e9ecef;
+    transition: all 0.2s ease;
+    animation: slideInChip 0.3s ease-out;
+}
+
+.file-chip.loading {
+    opacity: 0.7;
+    border-style: dashed;
+}
+
+.file-chip:hover {
+    background: #e9ecef;
+}
+
+.file-chip .remove-file {
+    background: none;
+    border: none;
+    color: #adb5bd;
+    cursor: pointer;
+    font-size: 12px;
+    padding: 2px 5px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s;
+}
+
+.file-chip .remove-file:hover {
+    background: #dee2e6;
+    color: #495057;
+}
+
+.file-name {
+    max-width: 150px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+/* Drag & Drop Effect */
+.input-wrapper.drag-over {
+    border: 2px dashed #4c6ef5 !important;
+    background: #e7f5ff !important;
+}
+
+.msg-files {
+    font-size: 11px;
+    margin-top: 8px;
+    padding-top: 8px;
+    border-top: 1px solid rgba(255,255,255,0.2);
+    opacity: 0.9;
+}
+
+@keyframes slideInChip {
+    from { opacity: 0; transform: translateY(5px); }
+    to { opacity: 1; transform: translateY(0); }
 }

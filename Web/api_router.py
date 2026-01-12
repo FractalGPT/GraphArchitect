@@ -25,46 +25,46 @@ document_service = DocumentService()
 
 # ============== Workflow endpoints ==============
 
-@api_router.post("/chat/{chat_id}/workflow", response_model=WorkflowCreateResponse)
+@api_router.post("/chat/{chat_id}/workflow")
 async def create_workflow(
     chat_id: str,
-    request_type: str = Form(...),
     user_message: str = Form(...),
-    files: Optional[List[str]] = Form(None)
+    request_type: str = Form("text"),
+    files: Optional[str] = Form(None),
+    planning_algorithm: str = Form("yen_5"),
+    use_streaming: bool = Form(True)
 ):
     """
-    Создать цепочку агентов для чата
-    
-    **Параметры:**
-    - chat_id: ID чата
-    - request_type: Тип запроса (text/image/combined)
-    - user_message: Сообщение пользователя
-    - files: Список файлов (опционально)
-    
-    **Возвращает:**
-    - WorkflowCreateResponse с созданной цепочкой агентов
+    Создать цепочку агентов для чата (Генерация графа)
     """
-    try:
-        req = WorkflowCreateRequest(
-            chat_id=chat_id,
-            request_type=request_type,  # type: ignore
-            user_message=user_message,
-            files=files or []
-        )
-        
-        workflow = await chat_service.create_workflow(req)
-        return workflow
+    file_list = []
+    if files:
+        try:
+            file_list = json.loads(files)
+        except:
+            file_list = [files] # Если не JSON, считаем как один ID
+
+    req = WorkflowCreateRequest(
+        chat_id=chat_id,
+        request_type=request_type, # type: ignore
+        user_message=user_message,
+        files=file_list,
+        planning_algorithm=planning_algorithm,
+        use_streaming=use_streaming
+    )
     
-    except ValueError as e:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=str(e)
-        )
-    except Exception as e:
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Error creating workflow: {str(e)}"
-        )
+    if not use_streaming:
+        return await chat_service.create_workflow(req)
+
+    async def generate():
+        async for chunk in chat_service.generate_graph_architecture_stream(req):
+            yield chunk.model_dump_json() + "\n"
+    
+    return StreamingResponse(
+        generate(),
+        media_type="application/x-ndjson",
+        headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"}
+    )
 
 
 @api_router.get("/chat/{chat_id}/workflow", response_model=WorkflowChain)
@@ -98,22 +98,15 @@ async def get_workflow(chat_id: str):
 async def send_message_stream(
     chat_id: str,
     message: str = Form(...),
-    files: Optional[str] = Form(None)
+    files: Optional[str] = Form(None),
+    planning_algorithm: str = Form("yen_5"),
+    use_streaming: bool = Form(True)
 ):
     """
-    Отправить сообщение с потоковым ответом
-    
-    **Параметры:**
-    - chat_id: ID чата
-    - message: Текст сообщения
-    - files: JSON со списком файлов (опционально)
-    
-    **Возвращает:**
-    - StreamingResponse с чанками ответа
-    
-    **Примечание:**
-    - Цепочка агентов подтягивается из БД по chat_id
-    - Если цепочки нет, создается автоматически
+    Унифицированный эндпоинт для работы с графом агентов.
+    Выполняет: 
+    1. Генерацию графа (3 фазы)
+    2. Выполнение шагов (Выбор + Запуск)
     """
     try:
         file_list = json.loads(files) if files else []
@@ -121,17 +114,24 @@ async def send_message_stream(
         request = MessageRequest(
             chat_id=chat_id,
             message=message,
-            files=file_list
+            files=file_list,
+            planning_algorithm=planning_algorithm,
+            use_streaming=use_streaming
         )
         
+        if not use_streaming:
+            # Логика для обычного (не стримингового) ответа
+            response = await chat_service.process_message(request)
+            return response
+
         async def generate():
-            async for chunk in chat_service.process_message_stream(request):
-                # Форматируем в JSON + newline для стриминга
+            # Теперь сервис возвращает чанки для ВСЕХ этапов
+            async for chunk in chat_service.process_full_workflow_stream(request):
                 yield chunk.model_dump_json() + "\n"
         
         return StreamingResponse(
             generate(),
-            media_type="application/x-ndjson",  # Newline Delimited JSON
+            media_type="application/x-ndjson",
             headers={
                 "Cache-Control": "no-cache",
                 "X-Accel-Buffering": "no"
@@ -141,7 +141,7 @@ async def send_message_stream(
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Error processing message: {str(e)}"
+            detail=f"Error: {str(e)}"
         )
 
 

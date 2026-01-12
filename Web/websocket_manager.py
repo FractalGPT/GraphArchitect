@@ -53,8 +53,9 @@ async def start_workflow(sid, data):
     try:
         template_name = data.get('template', 'customer_support')
         chat_id = data.get('chat_id', f"{sid}_workflow")
+        files = data.get('files', [])
         
-        print(f"🚀 Starting workflow: {template_name} for {sid}")
+        print(f"🚀 Starting workflow: {template_name} for {sid} with {len(files)} files")
         
         # Получаем шаблон workflow
         workflow = get_workflow_template(template_name)
@@ -65,6 +66,7 @@ async def start_workflow(sid, data):
             return
         
         workflow.chat_id = chat_id
+        workflow.files = files
         
         # Создаем callback для отправки событий
         async def emit_to_client(event_type: str, event_data: dict):

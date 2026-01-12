@@ -58,6 +58,11 @@ class WorkflowSimulator:
     async def _run_workflow(self):
         """Внутренний метод выполнения workflow"""
         try:
+            # === ЭТАП 1: Генерация графа (3 фазы) ===
+            await self.simulate_generation()
+            
+            if not self.is_running: return
+
             for step_index, step in enumerate(self.workflow.steps):
                 if not self.is_running:
                     print(f"🛑 Workflow {self.workflow.chat_id} was stopped before step {step_index}")
@@ -158,6 +163,55 @@ class WorkflowSimulator:
             print(f"❌ Error in _run_workflow: {e}")
             raise e
 
+    async def simulate_generation(self):
+        """Симуляция 3-этапной генерации графа с учетом алгоритма планирования"""
+        # Определяем количество цепочек на основе алгоритма
+        top_k = 1
+        name_lower = self.workflow.name.lower()
+        if "top-3" in name_lower: top_k = 3
+        elif "top-5" in name_lower: top_k = 5
+        elif "top-10" in name_lower: top_k = 10
+        elif "yen" in name_lower or "ant" in name_lower:
+            top_k = 5 # По умолчанию
+            
+        phases = [
+            {"id": "knn", "name": "Поиск похожих архитектур в k-NN..."},
+            {"id": "graph_algo", "name": f"Генерация {top_k} вариантов цепей ({self.workflow.name})"},
+            {"id": "llm_refine", "name": f"LLM-синтез оптимального графа из Top-{top_k} путей"}
+        ]
+        
+        print(f"  🏗️ Generating graph architecture using {self.workflow.name}...")
+        
+        for phase in phases:
+            if not self.is_running: break
+            
+            await self.emit("generation_phase_started", {
+                "type": "generation_phase_started",
+                "workflowId": self.workflow.chat_id,
+                "phaseId": phase["id"],
+                "phaseName": phase["name"]
+            })
+            
+            # Имитируем работу фазы
+            steps = 5
+            for i in range(steps):
+                if not self.is_running: break
+                progress = int(((i + 1) / steps) * 100)
+                await self.emit("generation_progress", {
+                    "type": "generation_progress",
+                    "workflowId": self.workflow.chat_id,
+                    "phaseId": phase["id"],
+                    "progress": progress
+                })
+                await asyncio.sleep(0.4) # Общее время на фазу ~2 сек
+            
+            await self.emit("generation_phase_completed", {
+                "type": "generation_phase_completed",
+                "workflowId": self.workflow.chat_id,
+                "phaseId": phase["id"]
+            })
+            await asyncio.sleep(0.2)
+
     async def run_agent_selection(self, step: WorkflowStep) -> Optional[Dict[str, Any]]:
         """Симуляция конкурентного выбора агентов"""
         try:
@@ -212,7 +266,8 @@ class WorkflowSimulator:
             for candidate in candidates:
                 if candidate["progress"] < 100:
                     agent_data = candidate["agentData"]
-                    avg_time = agent_data.metrics.get("avgResponseTime", 3000) / 1000  # в секунды
+                    # Ускоряем выбор в 3 раза (делим среднее время на 3)
+                    avg_time = (agent_data.metrics.get("avgResponseTime", 3000) / 1000) / 3 
                     
                     # Симуляция прогресса на основе средней скорости агента
                     progress_rate = (update_interval / avg_time) * 100
@@ -355,6 +410,11 @@ class WorkflowSimulator:
             "Финализация результатов...",
             "Задача завершена"
         ]
+        
+        # Если есть файлы, добавляем специфическое действие
+        if self.workflow.files:
+            actions[1] = f"Анализ {len(self.workflow.files)} файл(ов)..."
+            actions[2] = f"Извлечение данных из документов..."
         
         print(f"  ⚙️ Executing task with {agent.name}")
         

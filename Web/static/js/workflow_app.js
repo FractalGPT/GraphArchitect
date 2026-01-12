@@ -39,6 +39,9 @@ class WorkflowVisualizer {
         });
         
         this.socket.on('workflow_info', (data) => this.onWorkflowInfo(data));
+        this.socket.on('generation_phase_started', (data) => this.onGenerationPhaseStarted(data));
+        this.socket.on('generation_progress', (data) => this.onGenerationProgress(data));
+        this.socket.on('generation_phase_completed', (data) => this.onGenerationPhaseCompleted(data));
         this.socket.on('step_started', (data) => this.onStepStarted(data));
         this.socket.on('agent_progress', (data) => this.onAgentProgress(data));
         this.socket.on('agent_score_updated', (data) => this.onAgentScoreUpdated(data));
@@ -62,52 +65,129 @@ class WorkflowVisualizer {
     }
     
     setupEventListeners() {
-        document.getElementById('template-selector').addEventListener('change', (e) => {
-            document.getElementById('start-btn').disabled = !e.target.value;
-        });
-        
-        document.getElementById('start-btn').addEventListener('click', () => this.startWorkflow());
-        document.getElementById('stop-btn').addEventListener('click', () => this.stopWorkflow());
         document.getElementById('agent-search').addEventListener('input', (e) => this.filterAgentLibrary(e.target.value));
     }
     
     // === Workflow Control ===
     
-    startWorkflow(customTemplate = null) {
-        const template = customTemplate || document.getElementById('template-selector').value;
-        if (!template) return;
+    async startWorkflow(customTemplate = null, files = []) {
+        const algorithm = customTemplate || document.getElementById('template-selector').value;
+        if (!algorithm) return;
         
         document.getElementById('welcome-message').style.display = 'none';
-        
-        this.socket.emit('start_workflow', {
-            template: template,
-            chat_id: `wf_${Date.now()}`
-        });
-        
+        this.currentExecutionBlock = null;
+        this.currentExecutionContent = null;
         this.startTime = Date.now();
         this.startTimer();
         this.isWorkflowFinished = false;
-        
-        document.getElementById('start-btn').disabled = true;
-        document.getElementById('stop-btn').disabled = false;
+        this.setStopState(true);
         document.getElementById('stat-status').textContent = 'Running';
+
+        try {
+            const formData = new FormData();
+            formData.append('message', document.getElementById('message-input').value || "Execute workflow");
+            formData.append('files', JSON.stringify(files));
+            formData.append('planning_algorithm', algorithm);
+            formData.append('use_streaming', 'true');
+
+            const response = await fetch(`/api/chat/wf_${Date.now()}/message/stream`, {
+                method: 'POST',
+                body: formData
+            });
+
+            const reader = response.body.getReader();
+            const decoder = new TextDecoder();
+
+            while (true) {
+                const { value, done } = await reader.read();
+                if (done) break;
+                
+                const chunk = decoder.decode(value);
+                const lines = chunk.split('\n');
+                
+                for (const line of lines) {
+                    if (!line.trim()) continue;
+                    try {
+                        const data = JSON.parse(line);
+                        this.handleApiEvent(data);
+                    } catch (e) { console.error("Error parsing JSON chunk", e); }
+                }
+            }
+        } catch (error) {
+            console.error('API Error:', error);
+            this.onWorkflowError({ error: error.message });
+        }
     }
 
-    startWorkflowFromChat(message) {
-        this.addUserMessage(message);
-        
-        let template = 'customer_support';
-        if (message.toLowerCase().includes('код')) template = 'code_review';
-        if (message.toLowerCase().includes('текст') || message.toLowerCase().includes('стать')) template = 'content_creation';
-        
-        this.startWorkflow(template);
+    handleApiEvent(data) {
+        // Маппинг новых типов событий API на существующие обработчики
+        switch (data.type) {
+            case 'workflow_info': this.onWorkflowInfo(data.metadata); break;
+            case 'gen_phase_start': this.onGenerationPhaseStarted(data); break;
+            case 'gen_progress': this.onGenerationProgress(data); break;
+            case 'gen_phase_complete': this.onGenerationPhaseCompleted(data); break;
+            case 'step_started': 
+                const stepIdx = this.currentWorkflow.steps.findIndex(s => s.id === data.step_id);
+                this.onStepStarted({
+                    stepId: data.step_id,
+                    stepIndex: stepIdx !== -1 ? stepIdx : this.currentStepIndex,
+                    stepName: data.metadata.name,
+                    candidateAgents: data.metadata.candidates
+                });
+                break;
+            case 'agent_progress': 
+                this.onAgentProgress({ agentId: data.agent_id, progress: data.progress });
+                break;
+            case 'agent_score_updated': 
+                this.onAgentScoreUpdated({ agents: data.metadata.agents });
+                break;
+            case 'agent_selected': 
+                this.onAgentSelected({ winnerId: data.agent_id, score: data.score });
+                break;
+            case 'agent_executing': 
+                this.onAgentExecuting({ agentId: data.agent_id, progress: data.progress, action: data.content });
+                break;
+            case 'step_completed': this.onStepCompleted(data); break;
+            case 'text': this.onWorkflowCompleted({ finalAnswer: data.content }); break;
+            case 'error': this.onWorkflowError({ error: data.content }); break;
+        }
     }
 
-    addUserMessage(text) {
+    setStopState(isRunning) {
+        const sendBtn = document.getElementById('send-btn');
+        if (isRunning) {
+            sendBtn.innerHTML = '⏹';
+            sendBtn.style.background = '#ff6b6b';
+            sendBtn.title = 'Остановить выполнение';
+            sendBtn.type = 'button'; // Предотвращаем отправку формы
+        } else {
+            sendBtn.innerHTML = '🚀';
+            sendBtn.style.background = 'var(--f-blue)';
+            sendBtn.title = 'Отправить сообщение';
+            sendBtn.type = 'submit';
+        }
+    }
+
+    startWorkflowFromChat(message, files = []) {
+        this.addUserMessage(message, files);
+        
+        // Используем выбранный алгоритм планирования из селектора
+        const algorithm = document.getElementById('template-selector').value;
+        
+        this.startWorkflow(algorithm, files);
+    }
+
+    addUserMessage(text, files = []) {
         const chatMessages = document.getElementById('chat-messages');
         const msgDiv = document.createElement('div');
         msgDiv.className = 'message user-message';
-        msgDiv.textContent = text;
+        
+        let content = text;
+        if (files.length > 0) {
+            content += `<div class="msg-files">📎 Прикреплено файлов: ${files.length}</div>`;
+        }
+        
+        msgDiv.innerHTML = content;
         chatMessages.appendChild(msgDiv);
         chatMessages.scrollTop = chatMessages.scrollHeight;
     }
@@ -180,6 +260,65 @@ class WorkflowVisualizer {
         this.currentWorkflow = data;
         this.renderWorkflowSteps(data.steps);
         this.addLog('info', `✅ Сгенерирован граф: ${data.name}`);
+    }
+
+    onGenerationPhaseStarted(data) {
+        this.addLog('info', `🏗️ ${data.content}`);
+        
+        // Гарантируем наличие общего блока выполнения
+        if (!this.currentExecutionBlock || this.isWorkflowFinished) {
+            this.createNewExecutionBlock();
+        }
+
+        // Создаем визуальный элемент генерации ВНУТРИ лога, если его еще нет
+        let genContainer = this.currentExecutionContent.querySelector('.generation-log-compact');
+        if (!genContainer) {
+            genContainer = document.createElement('div');
+            genContainer.className = 'generation-log-compact';
+            genContainer.innerHTML = `
+                <div class="gen-log-phases">
+                    <div class="gen-log-item" data-phase="knn">1. Поиск в k-NN <span class="gen-status">⏳</span></div>
+                    <div class="gen-log-item" data-phase="graph_algo">2. Генерация цепочек <span class="gen-status">⏳</span></div>
+                    <div class="gen-log-item" data-phase="llm_refine">3. Обработка LLM <span class="gen-status">⏳</span></div>
+                </div>
+                <div class="gen-log-progress-bg"><div class="gen-log-progress-fill"></div></div>
+            `;
+            this.currentExecutionContent.prepend(genContainer);
+        }
+        
+        // Подсвечиваем текущую фазу (ищем по data-phase внутри текущего блока)
+        const phaseEl = genContainer.querySelector(`[data-phase="${data.phase_id}"]`);
+        if (phaseEl) phaseEl.classList.add('active');
+    }
+
+    onGenerationProgress(data) {
+        if (!this.currentExecutionContent) return;
+        const progressBar = this.currentExecutionContent.querySelector('.gen-log-progress-fill');
+        if (progressBar) {
+            let phaseIndex = 0;
+            if (data.phase_id === 'graph_algo') phaseIndex = 1;
+            if (data.phase_id === 'llm_refine') phaseIndex = 2;
+            
+            const totalProgress = (phaseIndex * 33.3) + (data.progress * 0.333);
+            progressBar.style.width = `${totalProgress}%`;
+        }
+    }
+
+    onGenerationPhaseCompleted(data) {
+        if (!this.currentExecutionContent) return;
+        const phaseEl = this.currentExecutionContent.querySelector(`[data-phase="${data.phase_id}"]`);
+        if (phaseEl) {
+            phaseEl.classList.remove('active');
+            phaseEl.classList.add('completed');
+            const status = phaseEl.querySelector('.gen-status');
+            if (status) status.textContent = '✅';
+        }
+        
+        // Если это последняя фаза, форсируем 100% на прогресс-баре
+        if (data.phase_id === 'llm_refine') {
+            const progressBar = this.currentExecutionContent.querySelector('.gen-log-progress-fill');
+            if (progressBar) progressBar.style.width = '100%';
+        }
     }
     
     onStepStarted(data) {
@@ -311,6 +450,7 @@ class WorkflowVisualizer {
         
         this.stopTimer();
         this.isWorkflowFinished = true;
+        this.setStopState(false);
         
         if (data.finalAnswer) {
             setTimeout(() => {
@@ -442,8 +582,7 @@ class WorkflowVisualizer {
     stopTimer() { clearInterval(this.timerInterval); }
     
     resetUI() {
-        document.getElementById('start-btn').disabled = false;
-        document.getElementById('stop-btn').disabled = true;
+        this.setStopState(false);
         document.getElementById('stat-status').textContent = 'Готов';
         document.getElementById('stat-progress').textContent = '0%';
         document.getElementById('stat-progress-fill').style.width = '0%';

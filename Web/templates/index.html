@@ -24,6 +24,81 @@
             min-height: 0;
             overflow: hidden;
             border-top: 1px solid #e9ecef;
+            transition: all 0.3s ease;
+            align-items: stretch;
+        }
+
+        .agents-sidebar, .library-sidebar {
+            display: flex;
+            flex-direction: column;
+            height: 100%;
+            min-height: 0;
+            overflow: hidden;
+        }
+
+        /* Адаптивность для планшетов */
+        @media (max-width: 1400px) {
+            .main-workspace {
+                grid-template-columns: 1fr 280px;
+            }
+            .agents-sidebar {
+                display: none;
+            }
+        }
+
+        @media (max-width: 1100px) {
+            .main-workspace {
+                grid-template-columns: 1fr;
+            }
+            .library-sidebar {
+                display: none;
+            }
+            .workflow-steps-top {
+                min-height: 70px !important;
+            }
+        }
+
+        /* Адаптивность для мобильных */
+        @media (max-width: 850px) {
+            .workflow-header h1 {
+                font-size: 16px;
+            }
+            .workflow-header p {
+                display: none; /* Скрываем подзаголовок для экономии места */
+            }
+            .workflow-controls {
+                gap: 5px;
+            }
+            .template-select {
+                max-width: 150px;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .workflow-header {
+                flex-direction: row; /* Оставляем в ряд, но компактнее */
+                justify-content: space-between;
+                padding: 10px 15px;
+            }
+            .workflow-info h1 {
+                font-size: 14px;
+            }
+            .workflow-stats {
+                gap: 10px;
+                padding: 0 15px;
+                height: auto;
+                min-height: 40px;
+                justify-content: space-around;
+            }
+            .stat-item {
+                gap: 5px;
+            }
+            .stat-label {
+                display: none; /* Скрываем лейблы "Шаг:", "Время:" на мобильных */
+            }
+            .stat-value {
+                font-size: 14px;
+            }
         }
 
         .chat-and-logs {
@@ -32,23 +107,28 @@
             background: #ffffff;
             height: 100%;
             min-height: 0;
+            min-width: 0;
+            width: 100%;
+            overflow: hidden; /* Фиксируем внутренности */
         }
 
         .messages-area {
-            flex: 1;
-            overflow-y: auto;
+            flex: 1; /* Занимает всё свободное место */
+            overflow-y: auto; /* Скроллится только здесь */
             padding: 25px;
             display: flex;
             flex-direction: column;
             gap: 15px;
             background: #fdfdfd;
+            min-height: 0; /* Важно для корректного скролла в flex */
         }
 
         .unified-input-zone {
             padding: 15px 25px;
             background: #ffffff;
             border-top: 1px solid #e9ecef;
-            flex-shrink: 0;
+            flex-shrink: 0; /* Никогда не сжимается и не уходит вниз */
+            z-index: 10;
         }
 
         .input-wrapper {
@@ -98,14 +178,16 @@
                 <p>Единая среда управления агентами</p>
             </div>
             <div class="workflow-controls">
-                <select id="template-selector" class="template-select">
-                    <option value="">Выберите Workflow...</option>
-                    <option value="customer_support">Поддержка</option>
-                    <option value="code_review">Ревью кода</option>
-                    <option value="content_creation">Контент</option>
+                <select id="template-selector" class="template-select" title="Выберите алгоритм графового планирования">
+                    <option value="dijkstra">Dijkstra</option>
+                    <option value="astar">A-star</option>
+                    <option value="yen_3">Алгоритм Йена (Топ-3)</option>
+                    <option value="yen_5" selected>Алгоритм Йена (Топ-5)</option>
+                    <option value="yen_10">Алгоритм Йена (Топ-10)</option>
+                    <option value="ant_3">Алгоритм муравьиной колонии (Топ-3)</option>
+                    <option value="ant_5">Алгоритм муравьиной колонии (Топ-5)</option>
+                    <option value="ant_10">Алгоритм муравьиной колонии (Топ-10)</option>
                 </select>
-                <button id="start-btn" class="btn btn-primary" disabled>▶ Запустить</button>
-                <button id="stop-btn" class="btn btn-danger" disabled>⏹ Стоп</button>
             </div>
         </div>
 
@@ -137,18 +219,18 @@
                 </div>
 
                 <div class="unified-input-zone">
-                    <div id="file-display" class="file-chips-container"></div>
-                    <form id="chat-form">
-                        <div class="input-wrapper">
-                            <label for="file-input" style="cursor: pointer; opacity: 0.6;">
-                                <span style="font-size: 20px;">📎</span>
-                            </label>
-                            <input type="file" id="file-input" multiple style="display: none;">
-                            <textarea id="message-input" placeholder="Введите ваш запрос..." rows="1"></textarea>
-                            <button type="submit" id="send-btn" style="background: var(--f-blue); color: white; border: none; width: 36px; height: 36px; border-radius: 10px; cursor: pointer;">🚀</button>
-                        </div>
-                        <input type="hidden" name="files" id="files-data" value="">
-                    </form>
+                        <div id="file-display" class="file-chips-container"></div>
+                        <form id="chat-form">
+                            <div class="input-wrapper" title="Перетащите файлы сюда или нажмите на скрепку">
+                                <label for="file-input" style="cursor: pointer; opacity: 0.6; padding: 5px;">
+                                    <span style="font-size: 20px;">📎</span>
+                                </label>
+                                <input type="file" id="file-input" multiple style="display: none;">
+                                <textarea id="message-input" placeholder="Введите ваш запрос или перетащите файлы..." rows="1"></textarea>
+                                <button type="submit" id="send-btn" style="background: var(--f-blue); color: white; border: none; width: 36px; height: 36px; border-radius: 10px; cursor: pointer;">🚀</button>
+                            </div>
+                            <input type="hidden" name="files" id="files-data" value="">
+                        </form>
                 </div>
             </div>
 

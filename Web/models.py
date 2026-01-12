@@ -78,6 +78,9 @@ class WorkflowChain(BaseModel):
     created_at: datetime = Field(default_factory=datetime.now)
     request_type: Literal["text", "image", "combined"] = "text"
     
+    # Файлы, прикрепленные к workflow
+    files: List[str] = []
+    
     # Старый формат для обратной совместимости
     agents: List[Agent] = []
     
@@ -92,13 +95,23 @@ class MessageRequest(BaseModel):
     chat_id: str
     message: str
     files: Optional[List[str]] = []
-
+    planning_algorithm: str = "yen_5"
+    use_streaming: bool = True
 
 class MessageChunk(BaseModel):
-    """Чанк ответа (для стриминга)"""
-    type: Literal["text", "agent_start", "agent_complete", "workflow", "image", "document"]
-    content: str
-    agent_id: Optional[str] = None  # Изменено на str для совместимости с новыми ID
+    """Чанк ответа (для стриминга всей цепочки: Генерация -> Выбор -> Выполнение)"""
+    type: Literal[
+        "gen_phase_start", "gen_progress", "gen_phase_complete", 
+        "step_started", "agent_progress", "agent_score_updated", 
+        "agent_selected", "agent_executing", "step_completed",
+        "workflow_info", "text", "error"
+    ]
+    content: Optional[str] = None
+    phase_id: Optional[str] = None
+    step_id: Optional[str] = None
+    agent_id: Optional[str] = None
+    progress: Optional[int] = None
+    score: Optional[float] = None
     metadata: Optional[dict] = None
 
 
@@ -139,10 +152,11 @@ class DocumentInfo(BaseModel):
 class WorkflowCreateRequest(BaseModel):
     """Запрос на создание цепочки агентов"""
     chat_id: str
-    request_type: Literal["text", "image", "combined"]
+    request_type: str = "text"
     user_message: str
     files: Optional[List[str]] = []
-
+    planning_algorithm: str = "yen_5"
+    use_streaming: bool = True
 
 class WorkflowCreateResponse(BaseModel):
     """Ответ с созданной цепочкой"""

@@ -7,6 +7,7 @@
     "current_step_index": 0,
     "created_at": "2026-01-11T05:20:02.695152",
     "request_type": "text",
+    "files": [],
     "agents": [
       {
         "id": "agent-researcher",
@@ -74,6 +75,7 @@
     "current_step_index": 0,
     "created_at": "2026-01-11T05:21:01.825136",
     "request_type": "text",
+    "files": [],
     "agents": [
       {
         "id": "agent-researcher",
@@ -141,6 +143,7 @@
     "current_step_index": 0,
     "created_at": "2026-01-11T05:27:36.331960",
     "request_type": "text",
+    "files": [],
     "agents": [
       {
         "id": "agent-researcher",
@@ -208,6 +211,7 @@
     "current_step_index": 0,
     "created_at": "2026-01-11T05:36:09.406982",
     "request_type": "text",
+    "files": [],
     "agents": [
       {
         "id": "agent-researcher",
@@ -275,6 +279,7 @@
     "current_step_index": 0,
     "created_at": "2026-01-11T05:38:28.858569",
     "request_type": "text",
+    "files": [],
     "agents": [
       {
         "id": "agent-researcher",
@@ -342,6 +347,7 @@
     "current_step_index": 0,
     "created_at": "2026-01-11T05:41:47.123458",
     "request_type": "text",
+    "files": [],
     "agents": [
       {
         "id": "agent-researcher",
@@ -409,6 +415,7 @@
     "current_step_index": 0,
     "created_at": "2026-01-11T07:27:24.891299",
     "request_type": "text",
+    "files": [],
     "agents": [
       {
         "id": "agent-researcher",
@@ -467,5 +474,81 @@
         "metrics": {}
       }
     ]
+  },
+  "1": {
+    "chat_id": "1",
+    "name": "Yen's Algorithm (Top-5)",
+    "description": "Генерация графа с использованием алгоритма Yen's Algorithm (Top-5)",
+    "steps": [
+      {
+        "id": "step-1",
+        "name": "Classify Request",
+        "order": 1,
+        "description": "Определить тип и приоритет запроса",
+        "status": "pending",
+        "phase": null,
+        "candidate_agents": [
+          "agent-classifier-gpt4",
+          "agent-classifier-claude",
+          "agent-classifier-local",
+          "agent-classifier-fast"
+        ],
+        "selected_agent_id": null,
+        "selection_criteria": {
+          "strategy": "best_quality_score",
+          "timeout": 8000
+        },
+        "candidates_progress": [],
+        "result": null
+      },
+      {
+        "id": "step-2",
+        "name": "Generate Response",
+        "order": 2,
+        "description": "Сгенерировать ответ клиенту",
+        "status": "pending",
+        "phase": null,
+        "candidate_agents": [
+          "agent-responder-creative",
+          "agent-responder-formal",
+          "agent-responder-technical",
+          "agent-responder-friendly"
+        ],
+        "selected_agent_id": null,
+        "selection_criteria": {
+          "strategy": "best_quality_score",
+          "timeout": 12000
+        },
+        "candidates_progress": [],
+        "result": null
+      },
+      {
+        "id": "step-3",
+        "name": "Quality Check",
+        "order": 3,
+        "description": "Проверка качества ответа",
+        "status": "pending",
+        "phase": null,
+        "candidate_agents": [
+          "agent-qa-strict",
+          "agent-qa-balanced",
+          "agent-qa-fast"
+        ],
+        "selected_agent_id": null,
+        "selection_criteria": {
+          "strategy": "fastest_response",
+          "timeout": 5000
+        },
+        "candidates_progress": [],
+        "result": null
+      }
+    ],
+    "current_step_index": 0,
+    "created_at": "2026-01-12T04:39:27.253761",
+    "request_type": "text",
+    "files": [
+      "string"
+    ],
+    "agents": []
   }
 }

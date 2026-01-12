@@ -56,149 +56,129 @@ class ChatService:
     def __init__(self):
         self.repo = get_repository()
     
-    async def create_workflow(self, request: WorkflowCreateRequest) -> WorkflowCreateResponse:
-        """Создать цепочку агентов для чата"""
+    async def create_workflow(self, request: WorkflowCreateRequest) -> WorkflowChain:
+        """Создать цепочку агентов для чата (Генерация графа)"""
+        from workflow_templates import get_workflow_template
         
-        # Определяем тип запроса
-        request_type = request.request_type
+        # Выбираем алгоритм
+        workflow = get_workflow_template(request.planning_algorithm) or get_workflow_template("yen_5")
         
-        # Если файлы есть, может быть image или combined
-        if request.files:
-            # Проверяем типы файлов
-            has_images = any(f.lower().endswith(('.jpg', '.jpeg', '.png', '.gif')) 
-                           for f in request.files)
-            has_docs = any(f.lower().endswith(('.pdf', '.doc', '.docx', '.txt')) 
-                          for f in request.files)
-            
-            if has_images and has_docs:
-                request_type = "combined"
-            elif has_images:
-                request_type = "image"
-            else:
-                request_type = "combined"
-        
-        # Получаем подходящих агентов
-        agents = DEFAULT_AGENTS.get(request_type, DEFAULT_AGENTS["text"])
-        
-        # Создаем workflow
-        workflow = WorkflowChain(
-            chat_id=request.chat_id,
-            agents=agents,
-            request_type=request_type
-        )
+        workflow.chat_id = request.chat_id
+        workflow.files = request.files or []
         
         # Сохраняем в БД
         self.repo.save_workflow(workflow)
         
-        # Создаем или обновляем чат
-        existing_chat = self.repo.get_chat(request.chat_id)
-        if not existing_chat:
-            self.repo.create_chat(request.chat_id)
-        
-        return WorkflowCreateResponse(
-            chat_id=request.chat_id,
-            workflow=workflow,
-            message=f"Created {request_type} workflow with {len(agents)} agents"
-        )
+        return workflow
     
     async def get_workflow(self, chat_id: str) -> Optional[WorkflowChain]:
         """Получить цепочку агентов для чата"""
         return self.repo.get_workflow(chat_id)
     
-    async def process_message_stream(
-        self, 
-        request: MessageRequest
-    ) -> AsyncGenerator[MessageChunk, None]:
-        """Обработать сообщение со стримингом"""
+    async def generate_graph_architecture_stream(self, request: WorkflowCreateRequest) -> AsyncGenerator[MessageChunk, None]:
+        """Стримминг этапов проектирования графа"""
+        from workflow_templates import get_workflow_template
         
-        # Получаем workflow для чата
-        workflow = self.repo.get_workflow(request.chat_id)
+        workflow = get_workflow_template(request.planning_algorithm) or get_workflow_template("yen_5")
         
-        if not workflow:
-            # Создаем автоматически если нет
-            create_req = WorkflowCreateRequest(
-                chat_id=request.chat_id,
+        # Инфо о воркфлоу
+        yield MessageChunk(
+            type="workflow_info",
+            metadata={
+                "name": workflow.name,
+                "steps": [{"id": s.id, "name": s.name} for s in workflow.steps]
+            }
+        )
+
+        top_k = 5
+        if "3" in workflow.name: top_k = 3
+        elif "10" in workflow.name: top_k = 10
+
+        phases = [
+            ("knn", "Поиск архитектур в k-NN..."),
+            ("graph_algo", f"Генерация {top_k} вариантов ({workflow.name})"),
+            ("llm_refine", f"LLM-синтез из Top-{top_k} путей")
+        ]
+
+        for phase_id, phase_name in phases:
+            yield MessageChunk(type="gen_phase_start", phase_id=phase_id, content=phase_name)
+            for i in range(5):
+                await asyncio.sleep(0.3)
+                yield MessageChunk(type="gen_progress", phase_id=phase_id, progress=(i+1)*20)
+            yield MessageChunk(type="gen_phase_complete", phase_id=phase_id)
+            await asyncio.sleep(0.2)
+
+    async def process_full_workflow_stream(self, request: MessageRequest) -> AsyncGenerator[MessageChunk, None]:
+        """Полный цикл работы через стриминг: Проектирование -> Выбор -> Выполнение"""
+        print(f"DEBUG: Processing workflow with algorithm: {request.planning_algorithm}")
+        from workflow_templates import get_workflow_template
+        import random
+
+        # 1. ПОДГОТОВКА (Генерация архитектуры через новый метод)
+        async for chunk in self.generate_graph_architecture_stream(
+            WorkflowCreateRequest(
+                chat_id=request.chat_id, 
+                user_message=request.message, 
+                planning_algorithm=request.planning_algorithm,
                 request_type="text",
-                user_message=request.message,
                 files=request.files
             )
-            workflow_resp = await self.create_workflow(create_req)
-            workflow = workflow_resp.workflow
+        ):
+            yield chunk
+
+        # Получаем workflow для выполнения
+        workflow = get_workflow_template(request.planning_algorithm) or get_workflow_template("yen_5")
+        print(f"DEBUG: Selected template name: {workflow.name}")
         
-        # Отправляем информацию о workflow (только agents)
-        import json
-        agents_data = [agent.model_dump() for agent in workflow.agents]
-        yield MessageChunk(
-            type="workflow",
-            content=json.dumps({"agents": agents_data}),
-            metadata={"agents_count": len(workflow.agents)}
-        )
-        
-        # Обрабатываем каждым агентом
-        for agent in workflow.agents:
-            # Начало работы агента
+        await asyncio.sleep(0.5)
+
+        # 3. ВЫПОЛНЕНИЕ ШАГОВ (Выбор + Запуск)
+        from agent_library import get_agent
+        for step in workflow.steps:
+            # СТАРТ ШАГА
             yield MessageChunk(
-                type="agent_start",
-                content=f"{agent.icon} {agent.name}",
-                agent_id=agent.id,
-                metadata={"agent": agent.model_dump()}
+                type="step_started", 
+                step_id=step.id, 
+                metadata={"name": step.name, "candidates": step.candidate_agents}
             )
-            
-            await asyncio.sleep(0.1)
-            
-            # Процесс обработки
-            work_msg = f'Обрабатываю запрос: <em>{request.message}</em><br>'
-            if request.files and agent.id == 1:
-                work_msg += f'Анализирую {len(request.files)} файл(ов)...<br>'
-            
-            # Стрим по словам
-            words = work_msg.split(' ')
-            for word in words:
-                yield MessageChunk(
-                    type="text",
-                    content=word + ' '
-                )
-                await asyncio.sleep(0.05)
-            
             await asyncio.sleep(0.3)
+
+            # ВЫБОР АГЕНТА (Competition)
+            candidates = [get_agent(aid) for aid in step.candidate_agents if get_agent(aid)]
+            scores = {c.id: 0 for c in candidates}
             
-            # Результат агента
-            result = f'✅ {agent.name} завершил анализ<br><br>'
-            words = result.split(' ')
-            for word in words:
+            # Ускоренный выбор (теперь ~1.2 сек вместо 3 сек, но с сохранением видимости прогресса)
+            for p in range(0, 101, 10): # Больше промежуточных кадров (10 вместо 20)
+                await asyncio.sleep(0.12) 
+                for c in candidates:
+                    # Имитируем рост уверенности агента
+                    scores[c.id] = round(random.uniform(0.6, 0.95) if p < 80 else random.uniform(0.85, 0.99), 3)
+                    yield MessageChunk(type="agent_progress", agent_id=c.id, progress=p, step_id=step.id)
+                
                 yield MessageChunk(
-                    type="text",
-                    content=word + ' '
+                    type="agent_score_updated", 
+                    step_id=step.id,
+                    metadata={"agents": [{"agentId": cid, "score": s} for cid, s in scores.items()]}
                 )
-                await asyncio.sleep(0.05)
+
+            winner = max(candidates, key=lambda c: scores[c.id])
+            yield MessageChunk(type="agent_selected", agent_id=winner.id, step_id=step.id, score=scores[winner.id])
             
-            # Завершение работы агента
-            yield MessageChunk(
-                type="agent_complete",
-                content="",
-                agent_id=agent.id
-            )
-            
-            await asyncio.sleep(0.2)
-        
-        # Финальный ответ
-        final = '---<br><br><strong>🎯 Итоговый результат</strong><br><br>'
-        final += f'Ваш запрос «{request.message}» был успешно обработан всей цепочкой агентов.<br><br>'
-        if request.files:
-            final += f'📎 Проанализировано файлов: {len(request.files)}<br>'
-        final += '🔍 Исследование завершено<br>'
-        final += '📊 Данные проанализированы<br>'
-        final += '✍️ Текст сгенерирован<br>'
-        final += '✅ Качество проверено<br><br>'
-        final += 'Система готова к следующему запросу.'
-        
-        words = final.split(' ')
-        for word in words:
-            yield MessageChunk(
-                type="text",
-                content=word + ' '
-            )
-            await asyncio.sleep(0.03)
+            await asyncio.sleep(0.8) # Важная пауза: дать пользователю увидеть победителя
+
+            # ИСПОЛНЕНИЕ АГЕНТОМ
+            actions = ["Анализ контекста...", "Генерация решения...", "Проверка результата..."]
+            for i, action in enumerate(actions):
+                await asyncio.sleep(0.5) # Чуть медленнее выполнение для солидности
+                progress = int(((i+1)/len(actions))*100)
+                yield MessageChunk(type="agent_executing", agent_id=winner.id, step_id=step.id, progress=progress, content=action)
+
+            yield MessageChunk(type="step_completed", step_id=step.id)
+            await asyncio.sleep(0.4) # Пауза перед следующим шагом графа
+
+        # 4. ФИНАЛЬНЫЙ ТЕКСТ
+        final_text = f"🎯 Граф успешно выполнен с помощью алгоритма {workflow.name}."
+        yield MessageChunk(type="text", content=final_text)
     
     async def process_message(self, request: MessageRequest) -> MessageResponse:
         """Обработать сообщение без стриминга"""

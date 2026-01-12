@@ -202,6 +202,27 @@ WORKFLOW_TEMPLATES = {
 
 def get_workflow_template(template_name: str) -> WorkflowChain:
     """Получить шаблон workflow"""
+    # Если это один из новых алгоритмов планирования
+    if template_name in ["dijkstra", "astar", "yen_3", "yen_5", "yen_10", "ant_3", "ant_5", "ant_10"]:
+        # Возвращаем универсальный шаблон, который будет дополнен алгоритмом планирования
+        names = {
+            "dijkstra": "Dijkstra Planning",
+            "astar": "A-star Planning",
+            "yen_3": "Yen's Algorithm (Top-3)",
+            "yen_5": "Yen's Algorithm (Top-5)",
+            "yen_10": "Yen's Algorithm (Top-10)",
+            "ant_3": "Ant Colony (Top-3)",
+            "ant_5": "Ant Colony (Top-5)",
+            "ant_10": "Ant Colony (Top-10)"
+        }
+        return WorkflowChain(
+            chat_id="dynamic_workflow",
+            name=names.get(template_name, "Custom Planning"),
+            description=f"Генерация графа с использованием алгоритма {names.get(template_name)}",
+            request_type="text",
+            steps=WORKFLOW_TEMPLATES["customer_support"].steps # Используем шаги поддержки как базу
+        )
+
     template = WORKFLOW_TEMPLATES.get(template_name)
     if template:
         # Возвращаем копию чтобы не изменять оригинал
@@ -212,7 +233,7 @@ def get_workflow_template(template_name: str) -> WorkflowChain:
 
 def get_all_templates() -> dict:
     """Получить все доступные шаблоны"""
-    return {
+    templates = {
         name: {
             "name": wf.name,
             "description": wf.description,
@@ -220,3 +241,24 @@ def get_all_templates() -> dict:
         }
         for name, wf in WORKFLOW_TEMPLATES.items()
     }
+    
+    # Добавляем новые алгоритмы
+    planning_algs = {
+        "dijkstra": "Dijkstra",
+        "astar": "A-star",
+        "yen_3": "Yen's Algorithm (Top-3)",
+        "yen_5": "Yen's Algorithm (Top-5)",
+        "yen_10": "Yen's Algorithm (Top-10)",
+        "ant_3": "Ant Colony (Top-3)",
+        "ant_5": "Ant Colony (Top-5)",
+        "ant_10": "Ant Colony (Top-10)"
+    }
+    
+    for alg_id, alg_name in planning_algs.items():
+        templates[alg_id] = {
+            "name": alg_name,
+            "description": f"Графовое планирование: {alg_name}",
+            "steps_count": 3
+        }
+        
+    return templates
