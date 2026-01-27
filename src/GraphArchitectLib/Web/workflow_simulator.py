@@ -3,7 +3,7 @@
 """
 import asyncio
 import random
-from typing import Dict, Any, Optional, Callable
+from typing import Dict, Any, Optional, Callable, List
 from models import WorkflowChain, WorkflowStep, CandidateProgress
 from agent_library import get_agent
 

@@ -2,13 +2,14 @@
 
 from typing import Callable, Any
 import sys
-import os
+from pathlib import Path
 
-# Добавляем родительскую директорию в путь для импорта
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+# Добавляем путь к библиотеке grapharchitect
+project_root = Path(__file__).parent.parent.parent / "src" / "GraphArchitectLib"
+sys.path.insert(0, str(project_root))
 
-from entities.base_tool import BaseTool
-from entities.connectors.connector import Connector
+from grapharchitect.entities.base_tool import BaseTool
+from grapharchitect.entities.connectors.connector import Connector
 
 
 class ReactiveTool(BaseTool):

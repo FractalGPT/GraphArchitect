@@ -512,16 +512,78 @@ AGENT_LIBRARY = {
 }
 
 
-def get_agent(agent_id: str) -> Optional[Agent]:
-    """Получить агента по ID"""
+def get_agent(agent_id: str, use_db: bool = True) -> Optional[Agent]:
+    """
+    Получить агента по ID.
+    
+    Args:
+        agent_id: ID агента
+        use_db: Использовать БД (если доступна)
+    
+    Returns:
+        Agent или None
+    """
+    # Пробуем загрузить из БД
+    if use_db:
+        try:
+            from sqlite_repository import get_sqlite_repository
+            repo = get_sqlite_repository()
+            agent = repo.get_agent(agent_id)
+            if agent:
+                return agent
+        except Exception as e:
+            pass  # Fallback на хардкод
+    
+    # Fallback: хардкод из AGENT_LIBRARY
     return AGENT_LIBRARY.get(agent_id)
 
 
-def get_agents_by_ids(agent_ids: List[str]) -> List[Agent]:
-    """Получить список агентов по их ID"""
-    return [AGENT_LIBRARY[aid] for aid in agent_ids if aid in AGENT_LIBRARY]
+def get_agents_by_ids(agent_ids: List[str], use_db: bool = True) -> List[Agent]:
+    """
+    Получить список агентов по их ID.
+    
+    Args:
+        agent_ids: Список ID агентов
+        use_db: Использовать БД
+    
+    Returns:
+        Список агентов
+    """
+    agents = []
+    for aid in agent_ids:
+        agent = get_agent(aid, use_db=use_db)
+        if agent:
+            agents.append(agent)
+    return agents
 
 
-def get_all_agents() -> List[Agent]:
-    """Получить всех агентов"""
+def get_all_agents(use_db: bool = True) -> List[Agent]:
+    """
+    Получить всех агентов.
+    
+    Args:
+        use_db: Использовать БД (если доступна)
+    
+    Returns:
+        Список всех агентов
+    
+    Приоритет:
+        1. Загрузить из SQLite БД (если доступна)
+        2. Fallback на хардкод из AGENT_LIBRARY
+    """
+    # Пробуем загрузить из БД
+    if use_db:
+        try:
+            from sqlite_repository import get_sqlite_repository
+            repo = get_sqlite_repository()
+            agents = repo.get_all_agents()
+            
+            if agents:
+                print(f"  📦 Загружено агентов из БД: {len(agents)}")
+                return agents
+        except Exception as e:
+            print(f"  ⚠️ БД не доступна ({e}), используется хардкод")
+    
+    # Fallback: хардкод из AGENT_LIBRARY
+    print(f"  📦 Используются хардкод агенты: {len(AGENT_LIBRARY)}")
     return list(AGENT_LIBRARY.values())

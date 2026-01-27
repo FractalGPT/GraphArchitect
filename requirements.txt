@@ -40,3 +40,7 @@ dataclasses-json>=0.5.7
 # pytest-cov>=4.0.0
 # black>=22.0.0
 # mypy>=1.0.0
+
+pytest~=9.0.0
+requests~=2.31.0
+matplotlib~=3.10.5

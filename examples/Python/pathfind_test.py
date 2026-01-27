@@ -3,30 +3,33 @@
 с возможностью выбора алгоритма поиска путей
 
 Портировано с C# на Python
+Обновлено для GraphArchitect 3.0
 """
 
 import sys
 import os
+from pathlib import Path
 
-# Добавляем родительскую директорию в путь для импорта
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+# Добавляем путь к библиотеке grapharchitect
+project_root = Path(__file__).parent.parent.parent / "src" / "GraphArchitectLib"
+sys.path.insert(0, str(project_root))
 
 from typing import List
 from datetime import datetime
 
-from entities.base_tool import BaseTool
-from entities.task_definition import TaskDefinition
-from entities.connectors.connector import Connector
-from services.embedding.simple_embedding_service import SimpleEmbeddingService
-from services.selection.instrument_selector import InstrumentSelector
-from services.graph_strategy_finder import GraphStrategyFinder
-from services.execution.execution_orchestrator import ExecutionOrchestrator
-from services.execution.execution_context import ExecutionContext
-from services.feedback.simple_critic import SimpleCritic
-from services.feedback.feedback_collector import FeedbackCollector
-from services.feedback.feedback_data import FeedbackData, FeedbackSource
-from services.training.training_orchestrator import TrainingOrchestrator
-from services.pathfinding_algorithm import PathfindingAlgorithm
+from grapharchitect.entities.base_tool import BaseTool
+from grapharchitect.entities.task_definition import TaskDefinition
+from grapharchitect.entities.connectors.connector import Connector
+from grapharchitect.services.embedding.simple_embedding_service import SimpleEmbeddingService
+from grapharchitect.services.selection.instrument_selector import InstrumentSelector
+from grapharchitect.services.graph_strategy_finder import GraphStrategyFinder
+from grapharchitect.services.execution.execution_orchestrator import ExecutionOrchestrator
+from grapharchitect.services.execution.execution_context import ExecutionContext
+from grapharchitect.services.feedback.simple_critic import SimpleCritic
+from grapharchitect.services.feedback.feedback_collector import FeedbackCollector
+from grapharchitect.services.feedback.feedback_data import FeedbackData, FeedbackSource
+from grapharchitect.services.training.training_orchestrator import TrainingOrchestrator
+from grapharchitect.services.pathfinding_algorithm import PathfindingAlgorithm
 
 from reactive_tool import ReactiveTool
 

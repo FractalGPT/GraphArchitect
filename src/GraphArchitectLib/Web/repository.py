@@ -189,12 +189,41 @@ class FileRepository(InMemoryRepository):
 _repository: Optional[InMemoryRepository] = None
 
 
-def get_repository(use_file_storage: bool = True) -> InMemoryRepository:
-    """Получить экземпляр repository"""
+def get_repository(use_file_storage: bool = True, use_sqlite: bool = True) -> InMemoryRepository:
+    """
+    Получить экземпляр repository.
+    
+    Args:
+        use_file_storage: Использовать FileRepository (JSON файлы)
+        use_sqlite: Использовать SQLite БД (рекомендуется)
+    
+    Returns:
+        Repository instance
+    
+    Приоритет:
+        1. SQLite (если use_sqlite=True) - РЕКОМЕНДУЕТСЯ
+        2. FileRepository (если use_file_storage=True)
+        3. InMemoryRepository (fallback)
+    """
     global _repository
+    
     if _repository is None:
+        # Пробуем SQLite (лучший вариант)
+        if use_sqlite:
+            try:
+                from sqlite_repository import get_sqlite_repository
+                _repository = get_sqlite_repository()
+                print("✅ Используется SQLite репозиторий")
+                return _repository
+            except Exception as e:
+                print(f"⚠️ SQLite не доступен ({e}), fallback на FileRepository")
+        
+        # Fallback на FileRepository
         if use_file_storage:
             _repository = FileRepository()
+            print("✅ Используется File репозиторий (JSON)")
         else:
             _repository = InMemoryRepository()
+            print("⚠️ Используется InMemory репозиторий (данные не сохраняются)")
+    
     return _repository

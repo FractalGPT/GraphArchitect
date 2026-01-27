@@ -17,6 +17,7 @@ sys.path.insert(0, str(project_root))
 
 from typing import List, Optional, AsyncGenerator, Tuple, Dict, Any
 import asyncio
+import uuid
 
 from grapharchitect.entities.base_tool import BaseTool
 from grapharchitect.entities.connectors.connector import Connector, ANY_SEMANTIC
@@ -661,6 +662,7 @@ class GraphArchitectBridge:
         Автоматическая оценка и обучение после выполнения.
         
         Вызывается автоматически после каждого выполнения.
+        Сохраняет данные в SQLite БД (если доступна).
         """
         try:
             # Автоматическая оценка через SimpleCritic
@@ -681,9 +683,97 @@ class GraphArchitectBridge:
             if tools_to_train:
                 self.training.train_all_tools(tools_to_train)
                 print(f"  🎓 Обучено инструментов: {len(tools_to_train)}")
+                
+                # Сохраняем обновленные метрики в БД
+                await self._save_tool_metrics_to_db(tools_to_train)
+            
+            # Сохраняем историю выполнения в БД
+            await self._save_execution_to_db(context, feedback)
         
         except Exception as e:
             print(f"  ⚠️ Ошибка при обучении: {e}")
+    
+    async def _save_tool_metrics_to_db(self, tools: List[BaseTool]):
+        """Сохранить метрики инструментов в БД"""
+        try:
+            from sqlite_repository import get_sqlite_repository
+            repo = get_sqlite_repository()
+            
+            for tool in tools:
+                if isinstance(tool, AgentTool):
+                    repo.save_tool_metrics(
+                        agent_id=tool.agent_id,
+                        tool_name=tool.metadata.tool_name,
+                        reputation=tool.metadata.reputation,
+                        mean_cost=tool.metadata.mean_cost,
+                        mean_time=tool.metadata.mean_time_answer,
+                        training_sample_size=tool.metadata.training_sample_size,
+                        variance_estimate=tool.metadata.variance_estimate,
+                        quality_scores=tool.metadata.quality_scores,
+                        capabilities_embedding=tool.metadata.capabilities_embedding
+                    )
+            
+            print(f"    💾 Метрики сохранены в БД")
+        
+        except Exception as e:
+            print(f"    ⚠️ Не удалось сохранить метрики: {e}")
+    
+    async def _save_execution_to_db(self, context: ExecutionContext, feedback):
+        """Сохранить историю выполнения в БД"""
+        try:
+            from sqlite_repository import get_sqlite_repository
+            repo = get_sqlite_repository()
+            
+            # Извлекаем данные из контекста
+            selected_tools = [
+                step.selected_tool.metadata.tool_name
+                for step in context.execution_steps
+                if step.selected_tool
+            ]
+            
+            # Упрощенные градиентные трассы (только основное)
+            gradient_traces = [
+                {
+                    'temperature': trace.temperature,
+                    'selected_tool': trace.selected_tool.metadata.tool_name if trace.selected_tool else None,
+                    'probabilities_count': len(trace.probabilities) if trace.probabilities else 0
+                }
+                for trace in context.gradient_traces
+            ]
+            
+            input_format = context.task.input_connector.format if context.task else "unknown"
+            output_format = context.task.output_connector.format if context.task else "unknown"
+            
+            repo.save_execution(
+                execution_id=str(uuid.uuid4()),
+                task_id=str(context.task_id),
+                chat_id=None,  # TODO: передавать chat_id из контекста
+                task_description=context.task.description if context.task else "",
+                input_format=input_format,
+                output_format=output_format,
+                algorithm_used="auto",  # TODO: сохранять использованный алгоритм
+                status=context.status.value,
+                selected_tools=selected_tools,
+                gradient_traces=gradient_traces,
+                result=context.result,
+                total_time=context.total_time,
+                total_cost=context.total_cost
+            )
+            
+            # Сохраняем feedback
+            repo.save_feedback(
+                task_id=str(context.task_id),
+                execution_id=None,  # TODO: связать с execution
+                source=feedback.source.value,
+                quality_score=feedback.quality_score,
+                success=feedback.success,
+                comment=feedback.comment
+            )
+            
+            print(f"    💾 История выполнения сохранена в БД")
+        
+        except Exception as e:
+            print(f"    ⚠️ Не удалось сохранить историю: {e}")
     
     async def submit_user_feedback(
         self,

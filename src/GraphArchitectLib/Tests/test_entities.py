@@ -164,7 +164,9 @@ class TestToolMetadata:
         metadata.quality_scores = [0.7, 0.8, 0.9]
         
         assert len(metadata.quality_scores) == 3
-        assert sum(metadata.quality_scores) / len(metadata.quality_scores) == 0.8
+        # Используем abs для сравнения float с погрешностью
+        avg = sum(metadata.quality_scores) / len(metadata.quality_scores)
+        assert abs(avg - 0.8) < 1e-6
     
     def test_capabilities_embedding(self):
         """Эмбеддинг возможностей"""
