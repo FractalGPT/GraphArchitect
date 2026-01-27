@@ -7,6 +7,14 @@ from typing import Dict, Any, Optional, Callable
 from models import WorkflowChain, WorkflowStep, CandidateProgress
 from agent_library import get_agent
 
+# ИНТЕГРАЦИЯ GraphArchitect
+try:
+    from grapharchitect_bridge import get_bridge, is_bridge_available, AgentTool
+    GRAPHARCHITECT_ENABLED = True
+except ImportError as e:
+    GRAPHARCHITECT_ENABLED = False
+    print(f"⚠️ WorkflowSimulator: GraphArchitect не доступен ({e})")
+
 
 class WorkflowSimulator:
     """Симуляция выполнения workflow с real-time обновлениями через WebSocket"""
@@ -213,7 +221,7 @@ class WorkflowSimulator:
             await asyncio.sleep(0.2)
 
     async def run_agent_selection(self, step: WorkflowStep) -> Optional[Dict[str, Any]]:
-        """Симуляция конкурентного выбора агентов"""
+        """Конкурентный выбор агентов (РЕАЛЬНЫЙ или симуляция)"""
         try:
             candidate_ids = step.candidate_agents
             strategy = step.selection_criteria.strategy
@@ -224,6 +232,115 @@ class WorkflowSimulator:
         except Exception as e:
             print(f"  ❌ Error in agent selection setup: {e}")
             return None
+        
+        # ПРОВЕРКА: Использовать GraphArchitect или симуляцию
+        if GRAPHARCHITECT_ENABLED and is_bridge_available():
+            # ✅ РЕАЛЬНЫЙ выбор через InstrumentSelector
+            return await self._run_agent_selection_real(step, candidate_ids, strategy)
+        else:
+            # ⚠️ СИМУЛЯЦИЯ (fallback)
+            return await self._run_agent_selection_simulation(step, candidate_ids, strategy, timeout)
+    
+    async def _run_agent_selection_real(
+        self,
+        step: WorkflowStep,
+        candidate_ids: List[str],
+        strategy: str
+    ) -> Optional[Dict[str, Any]]:
+        """РЕАЛЬНЫЙ выбор через GraphArchitect InstrumentSelector"""
+        print(f"    🚀 Режим: GraphArchitect (реальный softmax)")
+        
+        try:
+            bridge = get_bridge()
+            
+            # Получаем BaseTool для каждого кандидата
+            tools = bridge.get_tools_by_agent_ids(candidate_ids)
+            
+            if not tools:
+                print(f"    ❌ Инструменты не найдены для агентов: {candidate_ids}")
+                return None
+            
+            # Адаптируем strategy → temperature_constant
+            temp_map = {
+                "fastest_response": 0.3,    # Низкая T → концентрация на лучших
+                "best_quality_score": 1.0,  # Стандартная T
+                "consensus": 0.7,           # Средняя T
+                "balanced": 0.5             # Умеренная T
+            }
+            
+            bridge.selector._temperature_constant = temp_map.get(strategy, 1.0)
+            
+            # РЕАЛЬНЫЙ выбор через softmax с температурой!
+            selection_result = await bridge.select_tool_from_group(
+                tools,
+                task_embedding=None,  # TODO: получить из контекста задачи
+                top_k=len(tools)
+            )
+            
+            if not selection_result:
+                return None
+            
+            # Отправляем РЕАЛЬНЫЕ метрики клиенту
+            all_agents_data = []
+            for tool, prob in selection_result.all_probabilities.items():
+                if isinstance(tool, AgentTool):
+                    logit = selection_result.all_logits.get(tool, 0)
+                    
+                    all_agents_data.append({
+                        "agentId": tool.agent_id,
+                        "score": round(prob, 3),
+                        "logit": round(logit, 3)
+                    })
+                    
+                    # Отправляем обновление score
+                    await self.emit("agent_score_updated", {
+                        "type": "agent_score_updated",
+                        "workflowId": self.workflow.chat_id,
+                        "stepId": step.id,
+                        "agentId": tool.agent_id,
+                        "score": round(prob, 3),
+                        "logit": round(logit, 3),
+                        "temperature": round(selection_result.temperature, 3)
+                    })
+            
+            # Финальное обновление всех scores
+            await self.emit("agent_score_updated", {
+                "type": "agent_score_updated",
+                "workflowId": self.workflow.chat_id,
+                "stepId": step.id,
+                "agents": all_agents_data,
+                "temperature": round(selection_result.temperature, 3)
+            })
+            
+            # Возвращаем победителя
+            winner_tool = selection_result.selected_tool
+            if isinstance(winner_tool, AgentTool):
+                return {
+                    "id": winner_tool.agent_id,
+                    "score": selection_result.selection_probability
+                }
+            else:
+                return {
+                    "id": winner_tool.metadata.tool_name,
+                    "score": selection_result.selection_probability
+                }
+        
+        except Exception as e:
+            print(f"    ❌ Ошибка в GraphArchitect выборе: {e}")
+            import traceback
+            traceback.print_exc()
+            # Fallback на симуляцию
+            return await self._run_agent_selection_simulation(step, candidate_ids, strategy, 10.0)
+    
+    async def _run_agent_selection_simulation(
+        self,
+        step: WorkflowStep,
+        candidate_ids: List[str],
+        strategy: str,
+        timeout: float
+    ) -> Optional[Dict[str, Any]]:
+        """СИМУЛЯЦИЯ выбора (fallback режим)"""
+        print(f"    ⚠️ Режим: Симуляция (random)")
         
         # Инициализация прогресса кандидатов
         candidates = []

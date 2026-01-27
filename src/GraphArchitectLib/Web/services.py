@@ -15,6 +15,16 @@ from models import (
 )
 from repository import get_repository
 
+# ИНТЕГРАЦИЯ GraphArchitect
+try:
+    from grapharchitect_bridge import get_bridge, is_bridge_available, AgentTool
+    GRAPHARCHITECT_ENABLED = True
+    print("✅ GraphArchitect интеграция активирована")
+except ImportError as e:
+    GRAPHARCHITECT_ENABLED = False
+    print(f"⚠️ GraphArchitect не доступен: {e}")
+    print("  Используется режим симуляции")
+
 
 # ============== Предустановленные агенты (для обратной совместимости) ==============
 
@@ -111,74 +121,94 @@ class ChatService:
     async def process_full_workflow_stream(self, request: MessageRequest) -> AsyncGenerator[MessageChunk, None]:
         """Полный цикл работы через стриминг: Проектирование -> Выбор -> Выполнение"""
         print(f"DEBUG: Processing workflow with algorithm: {request.planning_algorithm}")
-        from workflow_templates import get_workflow_template
-        import random
-
-        # 1. ПОДГОТОВКА (Генерация архитектуры через новый метод)
-        async for chunk in self.generate_graph_architecture_stream(
-            WorkflowCreateRequest(
-                chat_id=request.chat_id, 
-                user_message=request.message, 
-                planning_algorithm=request.planning_algorithm,
-                request_type="text",
-                files=request.files
-            )
-        ):
-            yield chunk
-
-        # Получаем workflow для выполнения
-        workflow = get_workflow_template(request.planning_algorithm) or get_workflow_template("yen_5")
-        print(f"DEBUG: Selected template name: {workflow.name}")
         
-        await asyncio.sleep(0.5)
-
-        # 3. ВЫПОЛНЕНИЕ ШАГОВ (Выбор + Запуск)
-        from agent_library import get_agent
-        for step in workflow.steps:
-            # СТАРТ ШАГА
-            yield MessageChunk(
-                type="step_started", 
-                step_id=step.id, 
-                metadata={"name": step.name, "candidates": step.candidate_agents}
-            )
-            await asyncio.sleep(0.3)
-
-            # ВЫБОР АГЕНТА (Competition)
-            candidates = [get_agent(aid) for aid in step.candidate_agents if get_agent(aid)]
-            scores = {c.id: 0 for c in candidates}
+        # ПРОВЕРКА: Использовать GraphArchitect или симуляцию
+        if GRAPHARCHITECT_ENABLED and is_bridge_available():
+            # ✅ РЕАЛЬНОЕ ВЫПОЛНЕНИЕ через GraphArchitect
+            print("  🚀 Режим: GraphArchitect (реальные алгоритмы)")
             
-            # Ускоренный выбор (теперь ~1.2 сек вместо 3 сек, но с сохранением видимости прогресса)
-            for p in range(0, 101, 10): # Больше промежуточных кадров (10 вместо 20)
-                await asyncio.sleep(0.12) 
-                for c in candidates:
-                    # Имитируем рост уверенности агента
-                    scores[c.id] = round(random.uniform(0.6, 0.95) if p < 80 else random.uniform(0.85, 0.99), 3)
-                    yield MessageChunk(type="agent_progress", agent_id=c.id, progress=p, step_id=step.id)
-                
-                yield MessageChunk(
-                    type="agent_score_updated", 
-                    step_id=step.id,
-                    metadata={"agents": [{"agentId": cid, "score": s} for cid, s in scores.items()]}
+            bridge = get_bridge()
+            
+            async for chunk in bridge.execute_task_streaming(
+                message=request.message,
+                input_data=request.message,
+                algorithm=request.planning_algorithm,
+                top_k=5
+            ):
+                yield chunk
+        
+        else:
+            # ⚠️ СИМУЛЯЦИЯ (fallback если GraphArchitect не доступен)
+            print("  ⚠️ Режим: Симуляция (GraphArchitect не доступен)")
+            
+            from workflow_templates import get_workflow_template
+            import random
+
+            # 1. ПОДГОТОВКА (Генерация архитектуры через новый метод)
+            async for chunk in self.generate_graph_architecture_stream(
+                WorkflowCreateRequest(
+                    chat_id=request.chat_id, 
+                    user_message=request.message, 
+                    planning_algorithm=request.planning_algorithm,
+                    request_type="text",
+                    files=request.files
                 )
+            ):
+                yield chunk
 
-            winner = max(candidates, key=lambda c: scores[c.id])
-            yield MessageChunk(type="agent_selected", agent_id=winner.id, step_id=step.id, score=scores[winner.id])
+            # Получаем workflow для выполнения
+            workflow = get_workflow_template(request.planning_algorithm) or get_workflow_template("yen_5")
+            print(f"DEBUG: Selected template name: {workflow.name}")
             
-            await asyncio.sleep(0.8) # Важная пауза: дать пользователю увидеть победителя
+            await asyncio.sleep(0.5)
 
-            # ИСПОЛНЕНИЕ АГЕНТОМ
-            actions = ["Анализ контекста...", "Генерация решения...", "Проверка результата..."]
-            for i, action in enumerate(actions):
-                await asyncio.sleep(0.5) # Чуть медленнее выполнение для солидности
-                progress = int(((i+1)/len(actions))*100)
-                yield MessageChunk(type="agent_executing", agent_id=winner.id, step_id=step.id, progress=progress, content=action)
+            # 3. ВЫПОЛНЕНИЕ ШАГОВ (Выбор + Запуск)
+            from agent_library import get_agent
+            for step in workflow.steps:
+                # СТАРТ ШАГА
+                yield MessageChunk(
+                    type="step_started", 
+                    step_id=step.id, 
+                    metadata={"name": step.name, "candidates": step.candidate_agents}
+                )
+                await asyncio.sleep(0.3)
 
-            yield MessageChunk(type="step_completed", step_id=step.id)
-            await asyncio.sleep(0.4) # Пауза перед следующим шагом графа
+                # ВЫБОР АГЕНТА (Competition)
+                candidates = [get_agent(aid) for aid in step.candidate_agents if get_agent(aid)]
+                scores = {c.id: 0 for c in candidates}
+                
+                # Ускоренный выбор (теперь ~1.2 сек вместо 3 сек, но с сохранением видимости прогресса)
+                for p in range(0, 101, 10): # Больше промежуточных кадров (10 вместо 20)
+                    await asyncio.sleep(0.12) 
+                    for c in candidates:
+                        # Имитируем рост уверенности агента
+                        scores[c.id] = round(random.uniform(0.6, 0.95) if p < 80 else random.uniform(0.85, 0.99), 3)
+                        yield MessageChunk(type="agent_progress", agent_id=c.id, progress=p, step_id=step.id)
+                    
+                    yield MessageChunk(
+                        type="agent_score_updated", 
+                        step_id=step.id,
+                        metadata={"agents": [{"agentId": cid, "score": s} for cid, s in scores.items()]}
+                    )
 
-        # 4. ФИНАЛЬНЫЙ ТЕКСТ
-        final_text = f"🎯 Граф успешно выполнен с помощью алгоритма {workflow.name}."
-        yield MessageChunk(type="text", content=final_text)
+                winner = max(candidates, key=lambda c: scores[c.id])
+                yield MessageChunk(type="agent_selected", agent_id=winner.id, step_id=step.id, score=scores[winner.id])
+                
+                await asyncio.sleep(0.8) # Важная пауза: дать пользователю увидеть победителя
+
+                # ИСПОЛНЕНИЕ АГЕНТОМ
+                actions = ["Анализ контекста...", "Генерация решения...", "Проверка результата..."]
+                for i, action in enumerate(actions):
+                    await asyncio.sleep(0.5) # Чуть медленнее выполнение для солидности
+                    progress = int(((i+1)/len(actions))*100)
+                    yield MessageChunk(type="agent_executing", agent_id=winner.id, step_id=step.id, progress=progress, content=action)
+
+                yield MessageChunk(type="step_completed", step_id=step.id)
+                await asyncio.sleep(0.4) # Пауза перед следующим шагом графа
+
+            # 4. ФИНАЛЬНЫЙ ТЕКСТ
+            final_text = f"🎯 Граф успешно выполнен с помощью алгоритма {workflow.name}."
+            yield MessageChunk(type="text", content=final_text)
     
     async def process_message(self, request: MessageRequest) -> MessageResponse:
         """Обработать сообщение без стриминга"""

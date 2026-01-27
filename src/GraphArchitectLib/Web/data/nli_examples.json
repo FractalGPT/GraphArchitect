@@ -1,0 +1,201 @@
+[
+  {
+    "task_text": "Проанализировать запрос клиента и определить его тип",
+    "file_types": [],
+    "complex_types": ["text"],
+    "subtypes": [],
+    "semantic_input_types": ["question"],
+    "semantic_output_types": ["category"],
+    "knowledge_domains": ["customer_support"],
+    "representation": {
+      "input_connector": {
+        "data_type": {"complex_type": "structured", "subtype": "text"},
+        "semantic_type": {"semantic_category": "question"}
+      },
+      "output_connector": {
+        "data_type": {"complex_type": "structured", "subtype": "text"},
+        "semantic_type": {"semantic_category": "category"}
+      }
+    }
+  },
+  {
+    "task_text": "Сгенерировать ответ на вопрос клиента",
+    "file_types": [],
+    "complex_types": ["text"],
+    "semantic_input_types": ["outline", "topic"],
+    "semantic_output_types": ["content", "answer"],
+    "knowledge_domains": ["general"],
+    "representation": {
+      "input_connector": {
+        "data_type": {"complex_type": "structured", "subtype": "text"},
+        "semantic_type": {"semantic_category": "outline"}
+      },
+      "output_connector": {
+        "data_type": {"complex_type": "structured", "subtype": "text"},
+        "semantic_type": {"semantic_category": "content"}
+      }
+    }
+  },
+  {
+    "task_text": "Проверить качество текста и исправить ошибки",
+    "file_types": [],
+    "complex_types": ["text"],
+    "semantic_input_types": ["content", "draft"],
+    "semantic_output_types": ["validated", "polished"],
+    "knowledge_domains": ["editing"],
+    "representation": {
+      "input_connector": {
+        "data_type": {"complex_type": "structured", "subtype": "text"},
+        "semantic_type": {"semantic_category": "content"}
+      },
+      "output_connector": {
+        "data_type": {"complex_type": "structured", "subtype": "text"},
+        "semantic_type": {"semantic_category": "validated"}
+      }
+    }
+  },
+  {
+    "task_text": "Исследовать тему и собрать информацию",
+    "file_types": [],
+    "complex_types": ["text"],
+    "semantic_input_types": ["query", "topic"],
+    "semantic_output_types": ["findings", "data"],
+    "knowledge_domains": ["research"],
+    "representation": {
+      "input_connector": {
+        "data_type": {"complex_type": "structured", "subtype": "text"},
+        "semantic_type": {"semantic_category": "query"}
+      },
+      "output_connector": {
+        "data_type": {"complex_type": "structured", "subtype": "text"},
+        "semantic_type": {"semantic_category": "findings"}
+      }
+    }
+  },
+  {
+    "task_text": "Создать структурный план для статьи",
+    "file_types": [],
+    "complex_types": ["text"],
+    "semantic_input_types": ["topic", "question"],
+    "semantic_output_types": ["outline"],
+    "knowledge_domains": ["planning"],
+    "representation": {
+      "input_connector": {
+        "data_type": {"complex_type": "structured", "subtype": "text"},
+        "semantic_type": {"semantic_category": "topic"}
+      },
+      "output_connector": {
+        "data_type": {"complex_type": "structured", "subtype": "text"},
+        "semantic_type": {"semantic_category": "outline"}
+      }
+    }
+  },
+  {
+    "task_text": "Написать статью на основе плана",
+    "file_types": [],
+    "complex_types": ["text"],
+    "semantic_input_types": ["outline"],
+    "semantic_output_types": ["article", "content"],
+    "knowledge_domains": ["writing"],
+    "representation": {
+      "input_connector": {
+        "data_type": {"complex_type": "structured", "subtype": "text"},
+        "semantic_type": {"semantic_category": "outline"}
+      },
+      "output_connector": {
+        "data_type": {"complex_type": "structured", "subtype": "text"},
+        "semantic_type": {"semantic_category": "article"}
+      }
+    }
+  },
+  {
+    "task_text": "Проверить грамматику и улучшить стиль текста",
+    "file_types": [],
+    "complex_types": ["text"],
+    "semantic_input_types": ["draft"],
+    "semantic_output_types": ["polished"],
+    "knowledge_domains": ["editing"],
+    "representation": {
+      "input_connector": {
+        "data_type": {"complex_type": "structured", "subtype": "text"},
+        "semantic_type": {"semantic_category": "draft"}
+      },
+      "output_connector": {
+        "data_type": {"complex_type": "structured", "subtype": "text"},
+        "semantic_type": {"semantic_category": "polished"}
+      }
+    }
+  },
+  {
+    "task_text": "Проанализировать код и найти уязвимости",
+    "file_types": [],
+    "complex_types": ["text"],
+    "semantic_input_types": ["code"],
+    "semantic_output_types": ["analysis", "report"],
+    "knowledge_domains": ["code_analysis"],
+    "representation": {
+      "input_connector": {
+        "data_type": {"complex_type": "structured", "subtype": "text"},
+        "semantic_type": {"semantic_category": "code"}
+      },
+      "output_connector": {
+        "data_type": {"complex_type": "structured", "subtype": "text"},
+        "semantic_type": {"semantic_category": "analysis"}
+      }
+    }
+  },
+  {
+    "task_text": "Создать детальный отчет по данным",
+    "file_types": [],
+    "complex_types": ["text"],
+    "semantic_input_types": ["data", "findings"],
+    "semantic_output_types": ["report"],
+    "knowledge_domains": ["reporting"],
+    "representation": {
+      "input_connector": {
+        "data_type": {"complex_type": "structured", "subtype": "text"},
+        "semantic_type": {"semantic_category": "data"}
+      },
+      "output_connector": {
+        "data_type": {"complex_type": "structured", "subtype": "text"},
+        "semantic_type": {"semantic_category": "report"}
+      }
+    }
+  },
+  {
+    "task_text": "Извлечь текст из изображения",
+    "file_types": ["jpg", "png"],
+    "complex_types": ["image", "text"],
+    "semantic_input_types": ["raw"],
+    "semantic_output_types": ["extracted"],
+    "knowledge_domains": ["ocr"],
+    "representation": {
+      "input_connector": {
+        "data_type": {"complex_type": "structured", "subtype": "image"},
+        "semantic_type": {"semantic_category": "raw"}
+      },
+      "output_connector": {
+        "data_type": {"complex_type": "structured", "subtype": "text"},
+        "semantic_type": {"semantic_category": "extracted"}
+      }
+    }
+  },
+  {
+    "task_text": "Описать что изображено на картинке",
+    "file_types": ["jpg", "png"],
+    "complex_types": ["image", "text"],
+    "semantic_input_types": ["raw"],
+    "semantic_output_types": ["description"],
+    "knowledge_domains": ["image_processing"],
+    "representation": {
+      "input_connector": {
+        "data_type": {"complex_type": "structured", "subtype": "image"},
+        "semantic_type": {"semantic_category": "raw"}
+      },
+      "output_connector": {
+        "data_type": {"complex_type": "structured", "subtype": "text"},
+        "semantic_type": {"semantic_category": "description"}
+      }
+    }
+  }
+]

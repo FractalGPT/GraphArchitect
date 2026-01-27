@@ -330,6 +330,115 @@ async def delete_chat(chat_id: str):
         )
 
 
+# ============== Training endpoints ==============
+
+@api_router.post("/training/feedback")
+async def submit_feedback(
+    task_id: str = Form(...),
+    quality_score: float = Form(...),
+    comment: str = Form("")
+):
+    """
+    Отправить обратную связь для обучения инструментов
+    
+    **Параметры:**
+    - task_id: ID задачи (UUID)
+    - quality_score: Оценка качества (0.0-1.0)
+    - comment: Комментарий (опционально)
+    
+    **Возвращает:**
+    - Результат обработки обратной связи
+    """
+    from training_service import get_training_service
+    
+    training_service = get_training_service()
+    result = await training_service.submit_feedback(
+        task_id=task_id,
+        quality_score=quality_score,
+        comment=comment
+    )
+    
+    return result
+
+
+@api_router.get("/training/statistics")
+async def get_training_statistics():
+    """
+    Получить статистику обучения
+    
+    **Возвращает:**
+    - Общая статистика обучения всех инструментов
+    """
+    from training_service import get_training_service
+    
+    training_service = get_training_service()
+    stats = await training_service.get_statistics()
+    
+    return stats
+
+
+@api_router.get("/training/tools/{agent_id}")
+async def get_tool_metrics(agent_id: str):
+    """
+    Получить метрики конкретного инструмента
+    
+    **Параметры:**
+    - agent_id: ID агента/инструмента
+    
+    **Возвращает:**
+    - Детальные метрики инструмента
+    """
+    from training_service import get_training_service
+    
+    training_service = get_training_service()
+    metrics = await training_service.get_tool_metrics(agent_id)
+    
+    if not metrics:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Tool not found: {agent_id}"
+        )
+    
+    return metrics
+
+
+@api_router.get("/training/tools")
+async def get_all_tools_metrics():
+    """
+    Получить метрики всех инструментов
+    
+    **Возвращает:**
+    - Список метрик всех инструментов (отсортировано по репутации)
+    """
+    from training_service import get_training_service
+    
+    training_service = get_training_service()
+    metrics = await training_service.get_all_tools_metrics()
+    
+    return metrics
+
+
+@api_router.post("/training/train")
+async def train_on_dataset(
+    quality_threshold: float = Form(0.7)
+):
+    """
+    Запустить обучение на накопленном датасете
+    
+    **Параметры:**
+    - quality_threshold: Порог качества для фильтрации (0.0-1.0)
+    
+    **Возвращает:**
+    - Результат обучения и статистику
+    """
+    from training_service import get_training_service
+    
+    training_service = get_training_service()
+    result = await training_service.train_on_dataset(quality_threshold)
+    
+    return result
+
+
 # ============== Health check ==============
 
 @api_router.get("/health", response_model=ApiResponse)
@@ -340,8 +449,24 @@ async def health_check():
     **Возвращает:**
     - ApiResponse со статусом API
     """
+    try:
+        from grapharchitect_bridge import is_bridge_available
+        bridge_status = is_bridge_available()
+    except:
+        bridge_status = False
+    
     return ApiResponse(
         success=True,
         message="API is healthy",
-        data={"version": "1.0.0", "status": "online"}
+        data={
+            "version": "3.0.0",
+            "status": "online",
+            "grapharchitect_enabled": bridge_status,
+            "features": {
+                "real_algorithms": bridge_status,
+                "softmax_selection": bridge_status,
+                "training": bridge_status,
+                "nli": bridge_status
+            }
+        }
     )
