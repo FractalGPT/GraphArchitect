@@ -1,11 +1,11 @@
 """
-Примеры использования Web API с интеграцией GraphArchitect.
+Examples of using Web API with GraphArchitect integration.
 
-Демонстрирует:
-- Реальный выбор инструментов через softmax
-- Поиск стратегий с разными алгоритмами
-- Обучение на основе feedback
-- Получение метрик инструментов
+Demonstrates:
+- Real tool selection via softmax
+- Strategy finding with different algorithms
+- Training based on feedback
+- Getting tool metrics
 """
 
 import requests
@@ -17,181 +17,176 @@ BASE_URL = "http://localhost:8000/api"
 
 
 def example_1_health_check():
-    """Пример 1: Проверка статуса интеграции"""
+    """Example 1: Check integration status."""
     print("\n" + "="*70)
-    print("ПРИМЕР 1: Проверка интеграции GraphArchitect")
+    print("EXAMPLE 1: GraphArchitect Integration Check")
     print("="*70)
     
     response = requests.get(f"{BASE_URL}/health")
     health = response.json()
     
-    print(f"\nСтатус API: {'✓ Online' if health['success'] else '✗ Offline'}")
-    print(f"Версия: {health['data']['version']}")
+    print(f"\nAPI Status: {' [Online]' if health['success'] else '[Offline]'}")
+    print(f"Version: {health['data']['version']}")
     
     features = health['data']['features']
-    print(f"\nРежим работы:")
-    print(f"  GraphArchitect: {'✅ Активирован' if features['real_algorithms'] else '⚠️ Симуляция'}")
-    print(f"  Реальные алгоритмы: {'✅ Да' if features['real_algorithms'] else '❌ Нет'}")
-    print(f"  Softmax выбор: {'✅ Да' if features['softmax_selection'] else '❌ Нет'}")
-    print(f"  Обучение: {'✅ Да' if features['training'] else '❌ Нет'}")
-    print(f"  NLI: {'✅ Да' if features['nli'] else '❌ Нет'}")
+    print(f"\nOperating mode:")
+    print(f"  GraphArchitect: {'[Activated]' if features['real_algorithms'] else '[Simulation]'}")
+    print(f"  Real algorithms: {'[Yes]' if features['real_algorithms'] else '[No]'}")
+    print(f"  Softmax selection: {'[Yes]' if features['softmax_selection'] else '[No]'}")
+    print(f"  Training: {'[Yes]' if features['training'] else '[No]'}")
+    print(f"  NLI: {'[Yes]' if features['nli'] else '[No]'}")
     
     return features['real_algorithms']
 
 
 def example_2_streaming_with_real_algorithms():
-    """Пример 2: Стриминг с реальными алгоритмами"""
+    """Example 2: Streaming with real algorithms."""
     print("\n" + "="*70)
-    print("ПРИМЕР 2: Выполнение задачи с реальными алгоритмами")
+    print("EXAMPLE 2: Task Execution with Real Algorithms")
     print("="*70)
     
     chat_id = f"demo_{int(time.time())}"
     
-    # Тестируем разные алгоритмы
+    # Test different algorithms
     algorithms = ["dijkstra", "yen_5", "ant_5"]
     
     for algo in algorithms:
-        print(f"\n🔍 Алгоритм: {algo}")
+        print(f"\n[Algorithm: {algo}]")
         print("-" * 70)
         
         response = requests.post(
             f"{BASE_URL}/chat/{chat_id}/message/stream",
             data={
-                "message": "Проанализировать текст и определить его категорию",
+                "message": "Analyze this text and determine its category",
                 "planning_algorithm": algo
             },
             stream=True
         )
         
-        step_count = 0
-        selected_agents = []
-        temperatures = []
+        print("\nEvents received:")
         
+        event_count = 0
         for line in response.iter_lines():
             if line:
                 try:
-                    chunk = json.loads(line)
+                    event = json.loads(line)
+                    event_count += 1
                     
-                    if chunk["type"] == "step_started":
-                        step_count += 1
-                        print(f"\n  Шаг {step_count}: {chunk.get('content', 'N/A')}")
+                    event_type = event.get('type')
                     
-                    elif chunk["type"] == "agent_selected":
-                        agent_id = chunk.get("agent_id", "unknown")
-                        score = chunk.get("score", 0)
-                        temp = chunk.get("metadata", {}).get("temperature", 0)
+                    if event_type == 'agent_selected':
+                        agent_id = event.get('agent_id', 'unknown')
+                        score = event.get('score', 0)
+                        metadata = event.get('metadata', {})
+                        temp = metadata.get('temperature', 0)
+                        logit = metadata.get('logit', 0)
                         
-                        selected_agents.append(agent_id)
-                        temperatures.append(temp)
-                        
-                        print(f"    ✓ Выбран: {agent_id}")
-                        print(f"      Вероятность: {score:.3f}")
-                        if temp:
-                            print(f"      Температура: {temp:.3f}")
+                        print(f"\n  [Tool Selected]")
+                        print(f"    Tool ID:     {agent_id}")
+                        print(f"    Probability: {score:.3f} (from softmax!)")
+                        print(f"    Temperature: {temp:.3f}")
+                        print(f"    Logit:       {logit:.3f}")
                     
-                    elif chunk["type"] == "text":
-                        print(f"\n  📝 Результат: {chunk.get('content', '')[:100]}...")
+                    elif event_type == 'text':
+                        content = event.get('content', '')
+                        if content:
+                            print(f"\n  [Result]")
+                            print(f"    {content[:200]}")
                 
                 except json.JSONDecodeError:
                     pass
         
-        print(f"\n  📊 Итого:")
-        print(f"    Шагов: {step_count}")
-        print(f"    Агентов выбрано: {len(selected_agents)}")
-        if temperatures:
-            avg_temp = sum(temperatures) / len(temperatures)
-            print(f"    Средняя температура: {avg_temp:.3f}")
+        print(f"\n  Total events: {event_count}")
 
 
-def example_3_training_metrics():
-    """Пример 3: Метрики обучения"""
+def example_3_training_feedback():
+    """Example 3: Submit training feedback."""
     print("\n" + "="*70)
-    print("ПРИМЕР 3: Метрики обучения инструментов")
+    print("EXAMPLE 3: Training with User Feedback")
     print("="*70)
     
-    # Общая статистика
-    print("\n📊 Общая статистика обучения:")
-    print("-" * 70)
-    
+    # Check if Training Service is active
     response = requests.get(f"{BASE_URL}/training/statistics")
-    stats = response.json()
     
-    if stats.get("enabled"):
-        print(f"  Всего выполнений: {stats.get('total_executions', 0)}")
-        print(f"  Средняя оценка: {stats.get('average_quality', 0):.3f}")
-        print(f"  Success rate: {stats.get('success_rate', 0):.1%}")
-        print(f"  Среднее время: {stats.get('average_execution_time', 0):.2f}s")
-        print(f"  Средняя стоимость: ${stats.get('average_cost', 0):.3f}")
-    else:
-        print("  ⚠️ Training Service не активен")
+    if response.status_code != 200:
+        print("  [WARNING] Training Service not active")
+        return
     
-    # Метрики топ инструментов
-    print("\n🏆 Топ-5 инструментов по репутации:")
-    print("-" * 70)
+    # Submit feedback
+    task_id = f"task_{int(time.time())}"
+    quality_score = 0.92
     
-    response = requests.get(f"{BASE_URL}/training/tools")
-    tools_data = response.json()
-    
-    if tools_data.get("enabled") and tools_data.get("tools"):
-        top_tools = tools_data["tools"][:5]
-        
-        for i, tool in enumerate(top_tools, 1):
-            print(f"\n  {i}. {tool['tool_name']}")
-            print(f"     Репутация: {tool['reputation']:.3f}")
-            print(f"     Обучено на: {tool['training_sample_size']} примерах")
-            print(f"     Дисперсия: {tool['variance_estimate']:.3f}")
-            print(f"     Стоимость: ${tool['mean_cost']:.3f}")
-    else:
-        print("  ⚠️ Метрики не доступны")
-
-
-def example_4_submit_feedback():
-    """Пример 4: Отправка обратной связи"""
-    print("\n" + "="*70)
-    print("ПРИМЕР 4: Обратная связь для обучения")
-    print("="*70)
-    
-    # Генерируем тестовый task_id
-    import uuid
-    task_id = str(uuid.uuid4())
-    
-    print(f"\n📝 Отправка обратной связи для задачи: {task_id}")
+    print(f"\nSubmitting feedback:")
+    print(f"  Task ID: {task_id}")
+    print(f"  Quality: {quality_score}")
     
     response = requests.post(
         f"{BASE_URL}/training/feedback",
         data={
             "task_id": task_id,
-            "quality_score": 0.92,
-            "comment": "Отличный результат, агент справился идеально!"
+            "quality_score": quality_score,
+            "comment": "Excellent classification result"
         }
     )
     
     result = response.json()
     
-    if result.get("success"):
-        print(f"  ✅ {result.get('message')}")
-        print(f"  Оценка сохранена: {result.get('quality_score')}")
+    if result['success']:
+        print(f"\n  [OK] Feedback submitted")
+        print(f"    Tools updated: {result['data'].get('tools_updated', 0)}")
     else:
-        print(f"  ⚠️ {result.get('message')}")
+        print(f"\n  [ERROR] Feedback failed")
+
+
+def example_4_get_tool_metrics():
+    """Example 4: Get tool metrics."""
+    print("\n" + "="*70)
+    print("EXAMPLE 4: Getting Tool Metrics")
+    print("="*70)
+    
+    response = requests.get(f"{BASE_URL}/training/tools")
+    
+    if response.status_code != 200:
+        print("  [WARNING] Metrics not available")
+        return
+    
+    result = response.json()
+    
+    if result['success']:
+        tools = result['data']['tools']
+        
+        print(f"\nTool metrics (Top 5 by reputation):")
+        
+        # Sort by reputation
+        sorted_tools = sorted(tools, key=lambda x: x.get('reputation', 0), reverse=True)[:5]
+        
+        for tool in sorted_tools:
+            print(f"\n  {tool['tool_name']}:")
+            print(f"    Reputation:     {tool.get('reputation', 0):.3f}")
+            print(f"    Sample size:    {tool.get('training_sample_size', 0)}")
+            print(f"    Variance:       {tool.get('variance_estimate', 0):.3f}")
+    else:
+        print(f"  [ERROR] Failed to get metrics")
 
 
 def example_5_compare_algorithms():
-    """Пример 5: Сравнение алгоритмов поиска"""
+    """Example 5: Compare different pathfinding algorithms."""
     print("\n" + "="*70)
-    print("ПРИМЕР 5: Сравнение алгоритмов поиска путей")
+    print("EXAMPLE 5: Algorithm Comparison")
     print("="*70)
     
     chat_id = f"compare_{int(time.time())}"
-    message = "Проанализировать данные, создать отчет и проверить качество"
+    message = "Find information and create a report"
     
     algorithms = [
-        ("dijkstra", "Dijkstra - один лучший путь"),
-        ("yen_3", "Yen - топ-3 пути"),
-        ("ant_5", "Ant Colony - топ-5 путей")
+        ("dijkstra", "Single best path"),
+        ("yen_3", "Top-3 paths"),
+        ("yen_5", "Top-5 paths"),
+        ("ant_5", "Ant Colony (Top-5)")
     ]
     
     for algo, description in algorithms:
-        print(f"\n📊 {description}")
+        print(f"\n[{algo}] - {description}")
         print("-" * 70)
         
         start_time = time.time()
@@ -205,101 +200,113 @@ def example_5_compare_algorithms():
             stream=True
         )
         
-        strategies_found = 0
-        steps_count = 0
+        strategies_count = 0
+        selected_tools = []
         
         for line in response.iter_lines():
             if line:
                 try:
-                    chunk = json.loads(line)
+                    event = json.loads(line)
                     
-                    if chunk["type"] == "gen_phase_complete":
-                        metadata = chunk.get("metadata", {})
-                        if "strategies_found" in metadata:
-                            strategies_found = metadata["strategies_found"]
+                    if event.get('type') == 'strategies_found':
+                        strategies_count = event.get('count', 0)
                     
-                    elif chunk["type"] == "step_started":
-                        steps_count += 1
+                    elif event.get('type') == 'agent_selected':
+                        selected_tools.append(event.get('agent_id'))
                 
                 except json.JSONDecodeError:
                     pass
         
         elapsed = time.time() - start_time
         
-        print(f"  Стратегий найдено: {strategies_found}")
-        print(f"  Шагов выполнения: {steps_count}")
-        print(f"  Время: {elapsed:.2f}s")
+        print(f"  Strategies found: {strategies_count}")
+        print(f"  Tools selected:   {len(selected_tools)}")
+        print(f"  Time:             {elapsed:.2f}s")
 
 
-def example_6_tool_metrics():
-    """Пример 6: Детальные метрики инструмента"""
-    print("\n" + "="*70)
-    print("ПРИМЕР 6: Детальные метрики конкретного инструмента")
-    print("="*70)
-    
+def example_6_get_specific_tool_metrics():
+    """Example 6: Get metrics for specific tool."""
     agent_id = "agent-classifier-gpt4"
     
-    print(f"\n🔍 Получение метрик для: {agent_id}")
+    print(f"\n[Getting metrics for: {agent_id}]")
+    print("="*70)
     
     response = requests.get(f"{BASE_URL}/training/tools/{agent_id}")
     
     if response.status_code == 200:
-        metrics = response.json()
+        result = response.json()
         
-        print(f"\n✅ Метрики инструмента:")
-        print(f"  Название: {metrics['tool_name']}")
-        print(f"  Репутация: {metrics['reputation']:.3f}")
-        print(f"  Стоимость: ${metrics['mean_cost']:.3f}")
-        print(f"  Среднее время: {metrics['mean_time']:.2f}s")
-        print(f"  Размер выборки: {metrics['training_sample_size']}")
-        print(f"  Дисперсия: {metrics['variance_estimate']:.3f}")
-        print(f"  История оценок: {metrics['quality_scores_count']} записей")
-        print(f"  Эмбеддинг: {'✓ Есть' if metrics['has_embedding'] else '✗ Нет'}")
+        if result['success']:
+            tool = result['data']
+            
+            print(f"\n[OK] Tool metrics:")
+            print(f"  Name:              {tool['tool_name']}")
+            print(f"  Reputation:        {tool.get('reputation', 0):.3f}")
+            print(f"  Training samples:  {tool.get('training_sample_size', 0)}")
+            print(f"  Variance:          {tool.get('variance_estimate', 0):.3f}")
+            print(f"  Mean cost:         ${tool.get('mean_cost', 0):.4f}")
+            print(f"  Mean time:         {tool.get('mean_time_answer', 0):.2f}s")
+            
+            quality_scores = tool.get('quality_scores', [])
+            if quality_scores:
+                avg_quality = sum(quality_scores) / len(quality_scores)
+                print(f"  Avg quality:       {avg_quality:.3f} (from {len(quality_scores)} scores)")
     else:
-        print(f"  ❌ Инструмент не найден (статус {response.status_code})")
+        print(f"  [ERROR] Tool not found (status {response.status_code})")
 
 
 def main():
-    """Запуск всех примеров"""
+    """Run all examples."""
+    print("="*70)
+    print("GRAPHARCHITECT WEB API - USAGE EXAMPLES")
+    print("="*70)
+    print("\nMake sure server is running:")
+    print("  python main.py")
     print("\n" + "="*70)
-    print(" ПРИМЕРЫ ИСПОЛЬЗОВАНИЯ GRAPHARCHITECT WEB API")
-    print("="*70)
-    print("\nУбедитесь что сервер запущен: python main.py")
-    print("="*70)
     
     try:
-        # Проверяем доступность API
-        is_grapharchitect = example_1_health_check()
+        # Example 1: Health check
+        grapharchitect_enabled = example_1_health_check()
         
-        if not is_grapharchitect:
-            print("\n⚠️ GraphArchitect работает в режиме симуляции")
-            print("Некоторые примеры могут показывать не реальные данные")
-            print("\nЗапустите check_integration.py для диагностики")
-            
-            response = input("\nПродолжить? (y/n): ")
-            if response.lower() != 'y':
-                return
+        if not grapharchitect_enabled:
+            print("\n[WARNING] GraphArchitect is in simulation mode")
+            print("Real algorithms are not active.")
+            print("\nTo enable:")
+            print("  1. Ensure grapharchitect library is in PYTHONPATH")
+            print("  2. Restart server")
+            return
         
-        # Запускаем примеры
+        # Example 2: Streaming with algorithms
         example_2_streaming_with_real_algorithms()
-        example_3_training_metrics()
-        example_4_submit_feedback()
+        
+        # Example 3: Training feedback
+        example_3_training_feedback()
+        
+        # Example 4: Get all tool metrics
+        example_4_get_tool_metrics()
+        
+        # Example 5: Compare algorithms
         example_5_compare_algorithms()
-        example_6_tool_metrics()
         
+        # Example 6: Specific tool metrics
+        example_6_get_specific_tool_metrics()
+        
+        # Summary
         print("\n" + "="*70)
-        print(" ✓ ВСЕ ПРИМЕРЫ ВЫПОЛНЕНЫ УСПЕШНО!")
+        print("ALL EXAMPLES COMPLETE")
         print("="*70)
-        
-        if is_grapharchitect:
-            print("\n🎉 GraphArchitect работает в реальном режиме!")
-            print("Вы видели реальные алгоритмы, softmax и обучение!")
-        
+        print("\nKey points:")
+        print("  1. GraphArchitect uses real algorithms (not random)")
+        print("  2. Softmax selection with adaptive temperature")
+        print("  3. Training updates tool reputation")
+        print("  4. Metrics available via API")
+        print("\n" + "="*70)
+    
     except requests.exceptions.ConnectionError:
-        print("\n✗ ОШИБКА: Не удается подключиться к API")
-        print("Запустите сервер: python main.py")
+        print("\n[ERROR] Cannot connect to server")
+        print("Make sure server is running: python main.py")
     except Exception as e:
-        print(f"\n✗ ОШИБКА: {e}")
+        print(f"\n[ERROR] {e}")
         import traceback
         traceback.print_exc()
 

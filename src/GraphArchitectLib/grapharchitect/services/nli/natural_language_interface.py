@@ -1,6 +1,6 @@
 """Естественно-языковой интерфейс (ЕЯИ) для преобразования текста задачи в коннекторы"""
 
-from typing import List, Optional
+from typing import List, Optional, TYPE_CHECKING
 import json
 from dataclasses import dataclass
 
@@ -11,6 +11,11 @@ from ..embedding.embedding_service import EmbeddingService
 from .knn_few_shot_retriever import KNNFewShotRetriever, ScoredExample
 from .connector_info_aggregator import ConnectorInfoAggregator
 from .nli_dataset_item import NLIDatasetItem
+
+if TYPE_CHECKING:
+    from typing import Union
+    # Для поддержки разных типов ретриверов
+    RetrieverType = Union[KNNFewShotRetriever, 'FaissKNNRetriever']
 
 
 @dataclass
@@ -49,6 +54,7 @@ class NaturalLanguageInterface:
     def __init__(
         self,
         embedding_service: EmbeddingService,
+        retriever: Optional['KNNFewShotRetriever'] = None,
         vector_weight: float = 0.7,
         text_weight: float = 0.3
     ):
@@ -57,15 +63,22 @@ class NaturalLanguageInterface:
         
         Args:
             embedding_service: Сервис векторизации
-            vector_weight: Вес векторной схожести
-            text_weight: Вес текстовой схожести
+            retriever: K-NN ретривер (если None, создается автоматически)
+            vector_weight: Вес векторной схожести (используется если retriever=None)
+            text_weight: Вес текстовой схожести (используется если retriever=None)
         """
-        self._retriever = KNNFewShotRetriever(
-            embedding_service,
-            vector_weight,
-            text_weight
-        )
+        # Используем переданный retriever или создаем новый
+        if retriever is not None:
+            self._retriever = retriever
+        else:
+            self._retriever = KNNFewShotRetriever(
+                embedding_service,
+                vector_weight,
+                text_weight
+            )
+        
         self._aggregator = ConnectorInfoAggregator()
+        self._embedding_service = embedding_service
     
     def load_dataset(self, examples: List[NLIDatasetItem]):
         """

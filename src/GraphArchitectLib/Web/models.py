@@ -1,15 +1,15 @@
 """
-Модели данных для API
+Data models for API.
 """
 from typing import List, Optional, Union, Literal, Dict, Any
 from pydantic import BaseModel, Field
 from datetime import datetime
 
 
-# ============== Модели агентов ==============
+# ============== Tool/Agent models ==============
 
 class Agent(BaseModel):
-    """Агент в цепочке обработки"""
+    """Tool/Agent in processing chain."""
     id: str
     name: str
     icon: str
@@ -17,12 +17,12 @@ class Agent(BaseModel):
     type: str = "general"
     specialization: Optional[str] = None
     capabilities: List[str] = []
-    cost: float = 0.0  # Стоимость за операцию
+    cost: float = 0.0  # Cost per operation
     metrics: Dict[str, Any] = {}
 
 
 class CandidateProgress(BaseModel):
-    """Прогресс кандидата в конкурентном выборе"""
+    """Progress of candidate in competitive selection."""
     agent_id: str
     status: Literal["competing", "leading", "eliminated", "winner"] = "competing"
     progress: int = 0  # 0-100
@@ -30,13 +30,13 @@ class CandidateProgress(BaseModel):
 
 
 class SelectionCriteria(BaseModel):
-    """Критерии выбора агента"""
+    """Tool selection criteria."""
     strategy: Literal["fastest_response", "best_quality_score", "consensus", "balanced"] = "best_quality_score"
-    timeout: int = 10000  # миллисекунды
+    timeout: int = 10000  # milliseconds
 
 
 class WorkflowStep(BaseModel):
-    """Шаг в workflow (внутри шага выбирается 1 из N агентов)"""
+    """Workflow step (1 of N tools is selected within the step)."""
     id: str
     name: str
     order: int

@@ -1,13 +1,16 @@
 """
-SQLite Repository для GraphArchitect Web API.
+SQLite Repository for GraphArchitect Web API.
 
-Заменяет InMemoryRepository на персистентное хранилище.
+Replaces InMemoryRepository with persistent storage.
 """
 
 import json
 import uuid
+import logging
 from typing import List, Optional, Dict, Any
 from datetime import datetime
+
+logger = logging.getLogger(__name__)
 
 from models import (
     WorkflowChain, WorkflowStep, Agent, DocumentInfo, ChatInfo,
@@ -32,7 +35,7 @@ class SQLiteRepository:
             db_path: Путь к файлу БД
         """
         self.db = get_database(db_path)
-        print(f"✅ SQLiteRepository инициализирован ({db_path})")
+        logger.info(f"SQLiteRepository initialized ({db_path})")
     
     # ============== Работа с агентами ==============
     
@@ -89,7 +92,7 @@ class SQLiteRepository:
             id=row['id'],
             name=row['name'],
             type=row['type'],
-            icon=row['icon'] or "🤖",
+            icon=row['icon'] or "T",
             color=row['color'] or "#6366f1",
             specialization=row['specialization'],
             capabilities=json.loads(row['capabilities']) if row['capabilities'] else [],
@@ -220,7 +223,7 @@ class SQLiteRepository:
             Agent(
                 id=a['id'],
                 name=a['name'],
-                icon=a.get('icon', '🤖'),
+                icon=a.get('icon', 'T'),
                 color=a.get('color', '#6366f1'),
                 type=a.get('type', 'general'),
                 specialization=a.get('specialization'),

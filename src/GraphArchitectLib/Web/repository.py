@@ -1,21 +1,40 @@
 """
-Repository слой для работы с данными
-В production заменить на реальную БД (PostgreSQL, MongoDB, etc.)
+Repository layer for data operations.
+For production, replace with real database (PostgreSQL, MongoDB, etc.)
 """
 from typing import Dict, Optional, List
 from datetime import datetime
 from models import WorkflowChain, Agent, DocumentInfo, ChatInfo
 import json
 import os
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 class InMemoryRepository:
-    """Простое хранилище в памяти (для разработки)"""
+    """Simple in-memory storage (for development)."""
     
     def __init__(self):
         self._workflows: Dict[str, WorkflowChain] = {}
         self._documents: Dict[str, List[DocumentInfo]] = {}
         self._chats: Dict[str, ChatInfo] = {}
+        self._agents: Dict[str, Agent] = {}
+    
+    # ============== Agent operations ==============
+    
+    def get_all_agents(self) -> List[Agent]:
+        """Get all agents/tools."""
+        return list(self._agents.values())
+    
+    def get_agent(self, agent_id: str) -> Optional[Agent]:
+        """Get specific agent/tool by ID."""
+        return self._agents.get(agent_id)
+    
+    def save_agent(self, agent: Agent) -> Agent:
+        """Save agent/tool."""
+        self._agents[agent.id] = agent
+        return agent
         
     # ============== Работа с Workflow ==============
     
@@ -111,9 +130,9 @@ class FileRepository(InMemoryRepository):
         self._load_data()
     
     def _load_data(self):
-        """Загрузить данные из файлов"""
+        """Load data from files."""
         try:
-            # Загружаем workflows
+            # Load workflows
             workflows_file = os.path.join(self.data_dir, "workflows.json")
             if os.path.exists(workflows_file):
                 with open(workflows_file, 'r', encoding='utf-8') as f:
@@ -121,7 +140,7 @@ class FileRepository(InMemoryRepository):
                     for chat_id, workflow_data in data.items():
                         self._workflows[chat_id] = WorkflowChain(**workflow_data)
             
-            # Загружаем documents
+            # Load documents
             documents_file = os.path.join(self.data_dir, "documents.json")
             if os.path.exists(documents_file):
                 with open(documents_file, 'r', encoding='utf-8') as f:
@@ -129,39 +148,46 @@ class FileRepository(InMemoryRepository):
                     for chat_id, docs_data in data.items():
                         self._documents[chat_id] = [DocumentInfo(**doc) for doc in docs_data]
             
-            # Загружаем chats
+            # Load chats
             chats_file = os.path.join(self.data_dir, "chats.json")
             if os.path.exists(chats_file):
                 with open(chats_file, 'r', encoding='utf-8') as f:
                     data = json.load(f)
                     for chat_id, chat_data in data.items():
                         self._chats[chat_id] = ChatInfo(**chat_data)
+            
+            # Load agents (no agents in FileRepository - they should be in database)
+            logger.info("FileRepository: agents should be loaded from SQLite database")
+            
         except Exception as e:
-            print(f"Error loading data: {e}")
+            logger.error(f"Error loading data: {e}")
     
     def _save_data(self):
-        """Сохранить данные в файлы"""
+        """Save data to files."""
         try:
-            # Сохраняем workflows
+            # Save workflows
             workflows_file = os.path.join(self.data_dir, "workflows.json")
             with open(workflows_file, 'w', encoding='utf-8') as f:
                 data = {k: v.model_dump(mode='json') for k, v in self._workflows.items()}
                 json.dump(data, f, ensure_ascii=False, indent=2, default=str)
             
-            # Сохраняем documents
+            # Save documents
             documents_file = os.path.join(self.data_dir, "documents.json")
             with open(documents_file, 'w', encoding='utf-8') as f:
                 data = {k: [doc.model_dump(mode='json') for doc in v] 
                        for k, v in self._documents.items()}
                 json.dump(data, f, ensure_ascii=False, indent=2, default=str)
             
-            # Сохраняем chats
+            # Save chats
             chats_file = os.path.join(self.data_dir, "chats.json")
             with open(chats_file, 'w', encoding='utf-8') as f:
                 data = {k: v.model_dump(mode='json') for k, v in self._chats.items()}
                 json.dump(data, f, ensure_ascii=False, indent=2, default=str)
+            
+            # Note: agents should be in SQLite database, not files
+            
         except Exception as e:
-            print(f"Error saving data: {e}")
+            logger.error(f"Error saving data: {e}")
     
     def save_workflow(self, workflow: WorkflowChain) -> WorkflowChain:
         result = super().save_workflow(workflow)
@@ -176,6 +202,17 @@ class FileRepository(InMemoryRepository):
     def create_chat(self, chat_id: str, title: Optional[str] = None) -> ChatInfo:
         result = super().create_chat(chat_id, title)
         self._save_data()
+        return result
+    
+    def save_agent(self, agent: Agent) -> Agent:
+        result = super().save_agent(agent)
+        self._save_data()
+        return result
+    
+    def delete_workflow(self, chat_id: str) -> bool:
+        result = super().delete_workflow(chat_id)
+        if result:
+            self._save_data()
         return result
     
     def delete_chat(self, chat_id: str) -> bool:
@@ -213,17 +250,17 @@ def get_repository(use_file_storage: bool = True, use_sqlite: bool = True) -> In
             try:
                 from sqlite_repository import get_sqlite_repository
                 _repository = get_sqlite_repository()
-                print("✅ Используется SQLite репозиторий")
+                logger.info("Using SQLite repository")
                 return _repository
             except Exception as e:
-                print(f"⚠️ SQLite не доступен ({e}), fallback на FileRepository")
+                logger.warning(f"SQLite not available ({e}), fallback to FileRepository")
         
         # Fallback на FileRepository
         if use_file_storage:
             _repository = FileRepository()
-            print("✅ Используется File репозиторий (JSON)")
+            logger.info("Using File repository (JSON)")
         else:
             _repository = InMemoryRepository()
-            print("⚠️ Используется InMemory репозиторий (данные не сохраняются)")
+            logger.warning("Using InMemory repository (data not persisted)")
     
     return _repository

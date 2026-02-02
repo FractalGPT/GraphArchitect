@@ -1,29 +1,32 @@
 """
-Симулятор выполнения workflow с конкурентным выбором агентов
+Workflow execution simulator with competitive tool selection.
 """
 import asyncio
 import random
+import logging
 from typing import Dict, Any, Optional, Callable, List
 from models import WorkflowChain, WorkflowStep, CandidateProgress
 from agent_library import get_agent
 
-# ИНТЕГРАЦИЯ GraphArchitect
+logger = logging.getLogger(__name__)
+
+# GraphArchitect integration
 try:
     from grapharchitect_bridge import get_bridge, is_bridge_available, AgentTool
     GRAPHARCHITECT_ENABLED = True
 except ImportError as e:
     GRAPHARCHITECT_ENABLED = False
-    print(f"⚠️ WorkflowSimulator: GraphArchitect не доступен ({e})")
+    logger.warning(f"WorkflowSimulator: GraphArchitect not available ({e})")
 
 
 class WorkflowSimulator:
-    """Симуляция выполнения workflow с real-time обновлениями через WebSocket"""
+    """Workflow execution simulator with real-time WebSocket updates."""
     
     def __init__(self, workflow: WorkflowChain, emit_callback: Callable):
         """
         Args:
-            workflow: Workflow для выполнения
-            emit_callback: Функция для отправки WebSocket сообщений
+            workflow: Workflow to execute
+            emit_callback: Function to send WebSocket messages
         """
         self.workflow = workflow
         self.emit = emit_callback
@@ -36,7 +39,7 @@ class WorkflowSimulator:
             return
         
         self.is_running = True
-        print(f"🚀 Starting workflow: {self.workflow.name}")
+        logger.info(f"Starting workflow: {self.workflow.name}")
         
         try:
             # Добавляем общий таймаут для всего workflow
@@ -45,7 +48,7 @@ class WorkflowSimulator:
                 timeout=300  # 5 минут максимум
             )
         except asyncio.TimeoutError:
-            print("⏱️ Workflow timeout reached")
+            logger.warning("Workflow timeout reached")
             await self.emit("workflow_error", {
                 "type": "workflow_error",
                 "workflowId": self.workflow.chat_id,
@@ -53,7 +56,7 @@ class WorkflowSimulator:
             })
             self.is_running = False
         except Exception as e:
-            print(f"❌ Error in workflow execution: {e}")
+            logger.error(f"Error in workflow execution: {e}")
             import traceback
             traceback.print_exc()
             await self.emit("workflow_error", {
@@ -96,7 +99,7 @@ class WorkflowSimulator:
                 winner = await self.run_agent_selection(step)
                 
                 if not winner or not self.is_running:
-                    print(f"⚠️ Selection failed, cancelled or stopped for step {step.name}")
+                    logger.warning(f"Selection failed, cancelled or stopped for step {step.name}")
                     break
                 
                 # Победитель выбран!
@@ -166,9 +169,9 @@ class WorkflowSimulator:
                     ]
                 })
                 
-                print(f"\n✅ Workflow completed: {self.workflow.name}")
+                logger.info(f"Workflow completed: {self.workflow.name}")
         except Exception as e:
-            print(f"❌ Error in _run_workflow: {e}")
+            logger.error(f"Error in _run_workflow: {e}")
             raise e
 
     async def simulate_generation(self):
@@ -188,7 +191,7 @@ class WorkflowSimulator:
             {"id": "llm_refine", "name": f"LLM-синтез оптимального графа из Top-{top_k} путей"}
         ]
         
-        print(f"  🏗️ Generating graph architecture using {self.workflow.name}...")
+        logger.info(f"Generating graph architecture using {self.workflow.name}...")
         
         for phase in phases:
             if not self.is_running: break
@@ -230,15 +233,15 @@ class WorkflowSimulator:
             print(f"  🏁 Starting agent selection ({strategy}, timeout={timeout}s)")
             print(f"  👥 Candidates: {len(candidate_ids)} agents")
         except Exception as e:
-            print(f"  ❌ Error in agent selection setup: {e}")
+            logger.error(f"Error in agent selection setup: {e}")
             return None
         
         # ПРОВЕРКА: Использовать GraphArchitect или симуляцию
         if GRAPHARCHITECT_ENABLED and is_bridge_available():
-            # ✅ РЕАЛЬНЫЙ выбор через InstrumentSelector
+            # REAL selection via InstrumentSelector
             return await self._run_agent_selection_real(step, candidate_ids, strategy)
         else:
-            # ⚠️ СИМУЛЯЦИЯ (fallback)
+            # SIMULATION (fallback)
             return await self._run_agent_selection_simulation(step, candidate_ids, strategy, timeout)
     
     async def _run_agent_selection_real(
@@ -248,7 +251,7 @@ class WorkflowSimulator:
         strategy: str
     ) -> Optional[Dict[str, Any]]:
         """РЕАЛЬНЫЙ выбор через GraphArchitect InstrumentSelector"""
-        print(f"    🚀 Режим: GraphArchitect (реальный softmax)")
+        logger.info("Mode: GraphArchitect (real softmax)")
         
         try:
             bridge = get_bridge()
@@ -257,7 +260,7 @@ class WorkflowSimulator:
             tools = bridge.get_tools_by_agent_ids(candidate_ids)
             
             if not tools:
-                print(f"    ❌ Инструменты не найдены для агентов: {candidate_ids}")
+                logger.error(f"Tools not found for agents: {candidate_ids}")
                 return None
             
             # Адаптируем strategy → temperature_constant
@@ -326,7 +329,7 @@ class WorkflowSimulator:
                 }
         
         except Exception as e:
-            print(f"    ❌ Ошибка в GraphArchitect выборе: {e}")
+            logger.error(f"Error in GraphArchitect selection: {e}")
             import traceback
             traceback.print_exc()
             # Fallback на симуляцию
@@ -340,7 +343,7 @@ class WorkflowSimulator:
         timeout: float
     ) -> Optional[Dict[str, Any]]:
         """СИМУЛЯЦИЯ выбора (fallback режим)"""
-        print(f"    ⚠️ Режим: Симуляция (random)")
+        logger.info("Mode: Simulation (random)")
         
         # Инициализация прогресса кандидатов
         candidates = []
@@ -376,7 +379,7 @@ class WorkflowSimulator:
             elapsed = asyncio.get_event_loop().time() - start_time
             
             if elapsed >= timeout or not self.is_running:
-                print(f"  ⏱️ Selection timeout reached or stopped")
+                logger.warning("Selection timeout reached or stopped")
                 break
             
             # Обновляем прогресс каждого агента
@@ -432,7 +435,7 @@ class WorkflowSimulator:
             # Проверка на завершение всех агентов
             all_completed = all(c["progress"] >= 100 for c in candidates)
             if all_completed:
-                print(f"  ✅ All candidates completed")
+                logger.debug("All candidates completed")
                 break
             
             await asyncio.sleep(update_interval)
@@ -441,7 +444,7 @@ class WorkflowSimulator:
         winner = self.select_winner(candidates, strategy)
         
         if winner:
-            print(f"  🎯 Winner selected: {winner['id']} (score: {winner['score']:.3f})")
+            logger.info(f"Winner selected: {winner['id']} (score: {winner['score']:.3f})")
         
         return winner
     
@@ -533,7 +536,7 @@ class WorkflowSimulator:
             actions[1] = f"Анализ {len(self.workflow.files)} файл(ов)..."
             actions[2] = f"Извлечение данных из документов..."
         
-        print(f"  ⚙️ Executing task with {agent.name}")
+        logger.info(f"Executing task with {agent.name}")
         
         for i in range(steps_count):
             if not self.is_running:
@@ -558,7 +561,7 @@ class WorkflowSimulator:
             "agentName": agent.name
         }
         
-        print(f"  ✅ Task completed by {agent.name}")
+        logger.info(f"Task completed by {agent.name}")
     
     async def stop(self):
         """Остановить выполнение"""

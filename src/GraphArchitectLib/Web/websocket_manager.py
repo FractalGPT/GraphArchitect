@@ -1,12 +1,15 @@
 """
-WebSocket Manager с использованием Socket.IO для real-time коммуникации
+WebSocket Manager using Socket.IO for real-time communication.
 """
 import socketio
+import logging
 from typing import Dict
 from workflow_simulator import WorkflowSimulator
 from workflow_templates import get_workflow_template
 from models import WorkflowChain
 import asyncio
+
+logger = logging.getLogger(__name__)
 
 
 # Создаем Socket.IO сервер с логированием для отладки
@@ -24,14 +27,14 @@ active_simulators: Dict[str, WorkflowSimulator] = {}
 @sio.event
 async def connect(sid, environ):
     """Клиент подключился"""
-    print(f"🔌 Client connected: {sid}")
+    logger.info(f"Client connected: {sid}")
     await sio.emit('connected', {'sid': sid}, room=sid)
 
 
 @sio.event
 async def disconnect(sid):
     """Клиент отключился"""
-    print(f"🔌 Client disconnected: {sid}")
+    logger.info(f"Client disconnected: {sid}")
     
     # Останавливаем симуляторы для этого клиента если есть
     to_remove = []
@@ -55,7 +58,7 @@ async def start_workflow(sid, data):
         chat_id = data.get('chat_id', f"{sid}_workflow")
         files = data.get('files', [])
         
-        print(f"🚀 Starting workflow: {template_name} for {sid} with {len(files)} files")
+        logger.info(f"Starting workflow: {template_name} for {sid} with {len(files)} files")
         
         # Получаем шаблон workflow
         workflow = get_workflow_template(template_name)
@@ -98,7 +101,7 @@ async def start_workflow(sid, data):
         asyncio.create_task(simulator.start())
         
     except Exception as e:
-        print(f"❌ Error starting workflow: {e}")
+        logger.error(f"Error starting workflow: {e}")
         await sio.emit('error', {
             'message': f'Error starting workflow: {str(e)}'
         }, room=sid)
@@ -122,7 +125,7 @@ async def stop_workflow(sid, data):
             }, room=sid)
     
     except Exception as e:
-        print(f"❌ Error stopping workflow: {e}")
+        logger.error(f"Error stopping workflow: {e}")
         import traceback
         traceback.print_exc()
         await sio.emit('error', {

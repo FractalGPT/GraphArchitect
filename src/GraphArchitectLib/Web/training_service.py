@@ -1,16 +1,19 @@
 """
-Сервис обучения инструментов на основе пользовательской обратной связи.
+Training service for tools based on user feedback.
 
-Интегрирует TrainingOrchestrator из GraphArchitect для:
-- Сбора обратной связи
-- Обновления репутации инструментов
-- Обновления эмбеддингов
-- Получения статистики обучения
+Integrates TrainingOrchestrator from GraphArchitect for:
+- Collecting feedback
+- Updating tool reputation
+- Updating embeddings
+- Getting training statistics
 """
 
+import logging
 from typing import Optional, Dict, Any
 from datetime import datetime
 from uuid import UUID
+
+logger = logging.getLogger(__name__)
 
 try:
     from grapharchitect_bridge import get_bridge, is_bridge_available
@@ -23,10 +26,10 @@ except ImportError:
 
 class TrainingService:
     """
-    Сервис для управления обучением инструментов.
+    Service for managing tool training.
     
-    Обрабатывает обратную связь от пользователей и автоматических критиков,
-    обновляет репутацию и эмбеддинги инструментов.
+    Processes feedback from users and automatic critics,
+    updates tool reputation and embeddings.
     """
     
     def __init__(self):
@@ -34,10 +37,10 @@ class TrainingService:
         
         if self.enabled:
             self.bridge = get_bridge()
-            print("✅ TrainingService активирован")
+            logger.info("TrainingService activated")
         else:
             self.bridge = None
-            print("⚠️ TrainingService не активен (GraphArchitect не доступен)")
+            logger.warning("TrainingService not active (GraphArchitect not available)")
     
     async def submit_feedback(
         self,
@@ -90,7 +93,7 @@ class TrainingService:
             }
         
         except Exception as e:
-            print(f"  ❌ Ошибка при обработке feedback: {e}")
+            logger.error(f"Error processing feedback: {e}")
             return {
                 "success": False,
                 "message": str(e)
@@ -127,7 +130,7 @@ class TrainingService:
             }
         
         except Exception as e:
-            print(f"  ❌ Ошибка при получении статистики: {e}")
+            logger.error(f"Error getting statistics: {e}")
             return {
                 "enabled": True,
                 "error": str(e)
@@ -165,7 +168,7 @@ class TrainingService:
             }
         
         except Exception as e:
-            print(f"  ❌ Ошибка при получении метрик: {e}")
+            logger.error(f"Error getting metrics: {e}")
             return None
     
     async def get_all_tools_metrics(self) -> Dict[str, Any]:
@@ -200,7 +203,7 @@ class TrainingService:
             }
         
         except Exception as e:
-            print(f"  ❌ Ошибка при получении метрик всех инструментов: {e}")
+            logger.error(f"Error getting all tool metrics: {e}")
             return {
                 "enabled": True,
                 "error": str(e)
@@ -223,7 +226,7 @@ class TrainingService:
             }
         
         try:
-            print(f"  🎓 Запуск обучения (порог качества: {quality_threshold})")
+            logger.info(f"Starting training (quality threshold: {quality_threshold})")
             
             # Обучаем на успешных выполнениях
             self.bridge.training.train_on_successful_executions(
@@ -240,7 +243,7 @@ class TrainingService:
             # Получаем статистику
             stats = self.bridge.get_training_statistics()
             
-            print(f"  ✅ Обучение завершено")
+            logger.info("Training completed")
             
             return {
                 "success": True,
@@ -253,7 +256,7 @@ class TrainingService:
             }
         
         except Exception as e:
-            print(f"  ❌ Ошибка при обучении: {e}")
+            logger.error(f"Training error: {e}")
             return {
                 "success": False,
                 "message": str(e)

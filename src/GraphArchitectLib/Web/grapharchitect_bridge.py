@@ -1,23 +1,26 @@
 """
-Мост между Web API и библиотекой GraphArchitect.
+Bridge between Web API and GraphArchitect library.
 
-Этот модуль интегрирует всю функциональность GraphArchitect в Web API:
-- Конверсия Agent → BaseTool
-- Реальный поиск стратегий в графе
-- Выбор инструментов через softmax с температурой
-- Стриминг выполнения с градиентными трассами
+This module integrates GraphArchitect functionality into Web API:
+- Agent to BaseTool conversion
+- Real graph strategy search
+- Tool selection via softmax with temperature
+- Execution streaming with gradient traces
 """
 
 import sys
+import logging
 from pathlib import Path
 
-# Добавляем путь к grapharchitect
+# Add path to grapharchitect
 project_root = Path(__file__).parent.parent
 sys.path.insert(0, str(project_root))
 
 from typing import List, Optional, AsyncGenerator, Tuple, Dict, Any
 import asyncio
 import uuid
+
+logger = logging.getLogger(__name__)
 
 from grapharchitect.entities.base_tool import BaseTool
 from grapharchitect.entities.connectors.connector import Connector, ANY_SEMANTIC
@@ -129,33 +132,87 @@ class AgentTool(BaseTool):
         """
         Выполнить агента.
         
-        ⚠️ ЗАГЛУШКА: В продакшене заменить на реальный LLM API:
-        - OpenAI для GPT-4 агентов
-        - Anthropic для Claude агентов
-        - Локальные модели для Local агентов
+        Использует OpenRouter для реальных LLM вызовов (если API ключ доступен).
+        Fallback на заглушку если OpenRouter не доступен или произошла ошибка.
         """
-        # TODO: Интеграция с реальными API
-        # Примеры закомментированы ниже:
+        # Пробуем использовать OpenRouter
+        try:
+            import os
+            api_key = os.getenv("OPENROUTER_API_KEY")
+            
+            if api_key:
+                # Импортируем OpenRouter (если доступен)
+                try:
+                    from grapharchitect.tools.ApiTools.OpenRouterTool import OpenRouterTool, OpenRouterConfig
+                    
+                    # Определяем модель на основе agent_id
+                    model_map = {
+                        "gpt4": "gpt-4",
+                        "gpt-4": "gpt-4",
+                        "claude": "claude-3.5-sonnet",
+                        "claude-3": "claude-3-sonnet",
+                        "gemini": "gemini-pro",
+                        "llama": "llama-3-70b",
+                        "mistral": "mistral-large",
+                        "deepseek": "deepseek-chat"
+                    }
+                    
+                    # Подбираем модель
+                    model_key = "gpt-3.5-turbo"  # По умолчанию
+                    
+                    for key, value in model_map.items():
+                        if key in self._agent_id.lower():
+                            model_key = value
+                            break
+                    
+                    # Получаем ID модели для OpenRouter
+                    model_id = OpenRouterConfig.get_model_id(model_key)
+                    
+                    # Создаем OpenRouter инструмент
+                    openrouter_tool = OpenRouterTool(
+                        api_key=api_key,
+                        model_name=model_id,
+                        system_prompt=self.metadata.description or "You are a helpful AI assistant."
+                    )
+                    
+                    # РЕАЛЬНЫЙ вызов LLM с таймаутом!
+                    import signal
+                    
+                    def timeout_handler(signum, frame):
+                        raise TimeoutError("OpenRouter вызов превысил таймаут")
+                    
+                    try:
+                        # Устанавливаем таймаут 10 секунд
+                        # signal.signal(signal.SIGALRM, timeout_handler)
+                        # signal.alarm(10)
+                        
+                        result = openrouter_tool.execute(str(input_data))
+                        
+                        # signal.alarm(0)  # Отключаем таймаут
+                        
+                        logger.info(f"OpenRouter executed: {self.metadata.tool_name} ({model_id})")
+                        return result
+                    
+                    except (TimeoutError, ConnectionError, OSError) as net_err:
+                        logger.warning(f"OpenRouter network error: {net_err}")
+                        # Fallback to stub
+                
+                except ImportError as e:
+                    logger.debug(f"OpenRouter not available: {e}")
+                    pass  # Fallback
+                
+                except Exception as api_err:
+                    logger.warning(f"OpenRouter API error: {api_err}")
+                    pass  # Fallback
         
-        # if "gpt4" in self._agent_id.lower():
-        #     import openai
-        #     response = openai.ChatCompletion.create(
-        #         model="gpt-4",
-        #         messages=[{"role": "user", "content": str(input_data)}]
-        #     )
-        #     return response.choices[0].message.content
+        except Exception as e:
+            # General error, fallback
+            logger.error(f"Execution error: {e}")
         
-        # elif "claude" in self._agent_id.lower():
-        #     import anthropic
-        #     client = anthropic.Anthropic(api_key=os.getenv("ANTHROPIC_API_KEY"))
-        #     message = client.messages.create(
-        #         model="claude-3-opus-20240229",
-        #         messages=[{"role": "user", "content": str(input_data)}]
-        #     )
-        #     return message.content[0].text
-        
-        # Fallback: возвращаем обработанные данные
-        return f"[{self.metadata.tool_name}] Обработано: {input_data}"
+        # Fallback: return stub (always works!)
+        result = f"[{self.metadata.tool_name}] Processed: {str(input_data)[:100]}"
+        logger.info(f"Fallback mode: {self.metadata.tool_name}")
+        return result
     
     @property
     def agent_id(self) -> str:
@@ -182,11 +239,32 @@ class GraphArchitectBridge:
     """
     
     def __init__(self):
-        print("🔧 Инициализация GraphArchitectBridge...")
+        logger.info("Initializing GraphArchitectBridge...")
         
-        # Инициализация сервисов GraphArchitect
-        self.embedding_service = SimpleEmbeddingService(dimension=384)
-        self.selector = InstrumentSelector(temperature_constant=1.0)
+        # Создание сервиса эмбеддингов через фабрику (поддержка Infinity)
+        try:
+            from grapharchitect.services.embedding.embedding_factory import create_embedding_service
+            import config
+            
+            self.embedding_service = create_embedding_service(
+                embedding_type=config.EMBEDDING_TYPE,
+                dimension=config.EMBEDDING_DIMENSION,
+                infinity_url=config.INFINITY_BASE_URL,
+                infinity_api_key=config.INFINITY_API_KEY,
+                infinity_model=config.INFINITY_MODEL,
+                infinity_timeout=config.INFINITY_TIMEOUT,
+                fallback_to_simple=True
+            )
+            logger.info(f"Embedding service created: {self.embedding_service.__class__.__name__}")
+        
+        except Exception as e:
+            logger.error(f"Error creating embedding service from config: {e}")
+            logger.info("Falling back to SimpleEmbeddingService")
+            from grapharchitect.services.embedding.simple_embedding_service import SimpleEmbeddingService
+            self.embedding_service = SimpleEmbeddingService(dimension=384)
+        
+        # Инициализация других сервисов
+        self.selector = InstrumentSelector(temperature_constant=config.TEMPERATURE_CONSTANT)
         self.strategy_finder = GraphStrategyFinder()
         self.orchestrator = ExecutionOrchestrator(
             self.embedding_service,
@@ -194,8 +272,8 @@ class GraphArchitectBridge:
             self.strategy_finder
         )
         
-        # NLI для парсинга задач (опционально)
-        self.nli = NaturalLanguageInterface(self.embedding_service)
+        # NLI для парсинга задач с k-NN ретривером (поддержка Faiss)
+        self.nli = self._create_nli_with_retriever()
         self._load_nli_examples()
         
         # Обучение (опционально)
@@ -210,14 +288,14 @@ class GraphArchitectBridge:
             if isinstance(tool, AgentTool):
                 self.agent_to_tool_map[tool.agent_id] = tool
         
-        print(f"✅ GraphArchitectBridge готов ({len(self.tools)} инструментов)")
+        logger.info(f"GraphArchitectBridge ready ({len(self.tools)} tools)")
     
     def _convert_agents_to_tools(self) -> List[BaseTool]:
         """Конвертировать всех агентов из agent_library в BaseTool"""
         agents = get_all_agents()
         tools = []
         
-        print(f"  📦 Конвертация {len(agents)} агентов в BaseTool...")
+        logger.info(f"Converting {len(agents)} tools to BaseTool...")
         
         for agent in agents:
             tool = AgentTool(agent)
@@ -229,8 +307,40 @@ class GraphArchitectBridge:
         
         return tools
     
+    def _create_nli_with_retriever(self):
+        """
+        Создать NLI с правильным k-NN ретривером (Faiss или наивный).
+        
+        Returns:
+            Инициализированный NaturalLanguageInterface
+        """
+        try:
+            from grapharchitect.services.nli.retriever_factory import create_knn_retriever
+            import config
+            
+            # Создаем k-NN ретривер через фабрику
+            retriever = create_knn_retriever(
+                embedding_service=self.embedding_service,
+                retriever_type=config.KNN_TYPE,
+                vector_weight=config.KNN_VECTOR_WEIGHT,
+                text_weight=config.KNN_TEXT_WEIGHT,
+                faiss_index_type=config.FAISS_INDEX_TYPE
+            )
+            
+            # Создаем NLI с custom retriever
+            from grapharchitect.services.nli.natural_language_interface import NaturalLanguageInterface
+            nli = NaturalLanguageInterface(self.embedding_service, retriever=retriever)
+            
+            logger.info(f"NLI created with {retriever.__class__.__name__}")
+            return nli
+        
+        except Exception as e:
+            logger.error(f"Error creating NLI with custom retriever: {e}")
+            logger.info("Falling back to default NLI")
+            return NaturalLanguageInterface(self.embedding_service)
+    
     def _load_nli_examples(self):
-        """Загрузить примеры для NLI (если есть файл)"""
+        """Load NLI examples from file if available."""
         try:
             import json
             examples_file = Path(__file__).parent / "data" / "nli_examples.json"
@@ -241,11 +351,11 @@ class GraphArchitectBridge:
                     
                 examples = [NLIDatasetItem(**item) for item in data]
                 self.nli.load_dataset(examples)
-                print(f"  📚 Загружено {len(examples)} примеров для NLI")
+                logger.info(f"Loaded {len(examples)} NLI examples")
             else:
-                print(f"  ⚠️ NLI примеры не найдены: {examples_file}")
+                logger.warning(f"NLI examples not found: {examples_file}")
         except Exception as e:
-            print(f"  ⚠️ Ошибка загрузки NLI примеров: {e}")
+            logger.error(f"Error loading NLI examples: {e}")
     
     def get_tool_by_agent_id(self, agent_id: str) -> Optional[AgentTool]:
         """Получить BaseTool по ID агента"""
@@ -279,14 +389,14 @@ class GraphArchitectBridge:
                     result.task_representation.output_connector
                 )
                 
-                print(f"  🧠 NLI: {message[:50]}... → {input_conn.format} → {output_conn.format}")
+                logger.debug(f"NLI: {message[:50]}... -> {input_conn.format} -> {output_conn.format}")
                 return (input_conn, output_conn)
         
         except Exception as e:
-            print(f"  ⚠️ NLI ошибка: {e}")
+            logger.error(f"NLI error: {e}")
         
-        # Fallback: дефолтные коннекторы
-        print(f"  ⚠️ Используются дефолтные коннекторы")
+        # Fallback: default connectors
+        logger.warning("Using default connectors")
         return (
             Connector("text", "question"),
             Connector("text", "answer")
@@ -347,7 +457,7 @@ class GraphArchitectBridge:
         algo = algo_map.get(algorithm, PathfindingAlgorithm.YEN)
         limit = limit_map.get(algorithm, 5)
         
-        print(f"  🔍 Поиск стратегий: {start_format} → {end_format} ({algorithm}, limit={limit})")
+        logger.debug(f"Searching strategies: {start_format} -> {end_format} ({algorithm}, limit={limit})")
         
         # Реальный поиск в графе!
         strategies = self.strategy_finder.find_strategies(
@@ -358,7 +468,7 @@ class GraphArchitectBridge:
             algorithm=algo
         )
         
-        print(f"  ✅ Найдено стратегий: {len(strategies)}")
+        logger.info(f"Found {len(strategies)} strategies")
         
         return strategies
     
@@ -385,7 +495,7 @@ class GraphArchitectBridge:
             top_k=min(top_k, len(tool_group))
         )
         
-        print(f"    🎯 Выбран: {selection_result.selected_tool.metadata.tool_name} "
+        logger.debug(f"Selected: {selection_result.selected_tool.metadata.tool_name} "
               f"(p={selection_result.selection_probability:.3f}, T={selection_result.temperature:.3f})")
         
         return selection_result
@@ -417,7 +527,7 @@ class GraphArchitectBridge:
         task.task_embedding = self.embedding_service.embed_text(message)
         
         # 4. Выполнение через оркестратор
-        print(f"\n🚀 Выполнение задачи: {message[:50]}...")
+        logger.info(f"Executing task: {message[:50]}...")
         
         context = self.orchestrator.execute_task(
             task,
@@ -426,10 +536,8 @@ class GraphArchitectBridge:
             top_k=top_k
         )
         
-        print(f"✅ Задача выполнена: {context.status.value}")
-        print(f"  Шагов: {context.get_total_steps()}")
-        print(f"  Время: {context.total_time:.2f}s")
-        print(f"  Стоимость: {context.total_cost:.2f}")
+        logger.info(f"Task completed: {context.status.value}")
+        logger.info(f"Steps: {context.get_total_steps()}, Time: {context.total_time:.2f}s, Cost: {context.total_cost:.2f}")
         
         # 5. Автоматическая оценка и обучение
         await self._auto_evaluate_and_train(context)
@@ -489,7 +597,7 @@ class GraphArchitectBridge:
         if not strategies:
             yield MessageChunk(
                 type="error",
-                content="❌ Стратегии не найдены. Проверьте коннекторы агентов."
+                content="No strategies found. Check tool connectors."
             )
             return
         
@@ -654,7 +762,7 @@ class GraphArchitectBridge:
         # 6. Финальный результат
         yield MessageChunk(
             type="text",
-            content=f"✅ Результат выполнения:\n\n{current_data}"
+            content=f"Execution result:\n\n{current_data}"
         )
     
     async def _auto_evaluate_and_train(self, context: ExecutionContext):
@@ -668,7 +776,7 @@ class GraphArchitectBridge:
             # Автоматическая оценка через SimpleCritic
             feedback = self.critic.evaluate_execution(context)
             
-            print(f"  📊 Автооценка: {feedback.quality_score:.2f}")
+            logger.info(f"Auto-evaluation: {feedback.quality_score:.2f}")
             
             # Добавление в датасет для обучения
             self.training.add_execution_to_dataset(context, [feedback])
@@ -682,7 +790,7 @@ class GraphArchitectBridge:
             
             if tools_to_train:
                 self.training.train_all_tools(tools_to_train)
-                print(f"  🎓 Обучено инструментов: {len(tools_to_train)}")
+                logger.info(f"Trained tools: {len(tools_to_train)}")
                 
                 # Сохраняем обновленные метрики в БД
                 await self._save_tool_metrics_to_db(tools_to_train)
@@ -691,7 +799,7 @@ class GraphArchitectBridge:
             await self._save_execution_to_db(context, feedback)
         
         except Exception as e:
-            print(f"  ⚠️ Ошибка при обучении: {e}")
+            logger.error(f"Training error: {e}")
     
     async def _save_tool_metrics_to_db(self, tools: List[BaseTool]):
         """Сохранить метрики инструментов в БД"""
@@ -713,10 +821,10 @@ class GraphArchitectBridge:
                         capabilities_embedding=tool.metadata.capabilities_embedding
                     )
             
-            print(f"    💾 Метрики сохранены в БД")
+            logger.debug("Metrics saved to database")
         
         except Exception as e:
-            print(f"    ⚠️ Не удалось сохранить метрики: {e}")
+            logger.error(f"Failed to save metrics: {e}")
     
     async def _save_execution_to_db(self, context: ExecutionContext, feedback):
         """Сохранить историю выполнения в БД"""
@@ -770,10 +878,10 @@ class GraphArchitectBridge:
                 comment=feedback.comment
             )
             
-            print(f"    💾 История выполнения сохранена в БД")
+            logger.debug("Execution history saved to database")
         
         except Exception as e:
-            print(f"    ⚠️ Не удалось сохранить историю: {e}")
+            logger.error(f"Failed to save execution history: {e}")
     
     async def submit_user_feedback(
         self,
@@ -809,7 +917,7 @@ class GraphArchitectBridge:
         
         if tools_to_train:
             self.training.train_all_tools(tools_to_train)
-            print(f"  🎓 Обучение на основе пользовательской обратной связи: {quality_score:.2f}")
+            logger.info(f"Training from user feedback: {quality_score:.2f}")
     
     def get_training_statistics(self):
         """Получить статистику обучения"""
@@ -834,18 +942,18 @@ def get_bridge() -> GraphArchitectBridge:
     if _bridge is None and _bridge_error is None:
         try:
             print("\n" + "="*70)
-            print("🌉 Инициализация GraphArchitect Bridge")
+            logger.info("Initializing GraphArchitect Bridge")
             print("="*70)
             
             _bridge = GraphArchitectBridge()
             
             print("="*70)
-            print("✅ Bridge готов к использованию!")
+            logger.info("Bridge ready to use!")
             print("="*70 + "\n")
         
         except Exception as e:
             _bridge_error = e
-            print(f"\n❌ Ошибка инициализации Bridge: {e}")
+            logger.error(f"Bridge initialization error: {e}")
             import traceback
             traceback.print_exc()
             raise

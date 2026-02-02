@@ -1,22 +1,25 @@
 """
-SQLite3 база данных для GraphArchitect Web API.
+SQLite3 database for GraphArchitect Web API.
 
-Таблицы:
-- agents - библиотека агентов (вместо хардкода)
-- workflows - цепочки выполнения
-- chats - информация о чатах
-- documents - загруженные документы
-- executions - история выполнений
-- feedbacks - обратная связь для обучения
-- tool_metrics - метрики инструментов
+Tables:
+- agents - tool library (instead of hardcode)
+- workflows - execution chains
+- chats - chat information
+- documents - uploaded documents
+- executions - execution history
+- feedbacks - feedback for training
+- tool_metrics - tool metrics
 """
 
 import sqlite3
 import json
+import logging
 from typing import List, Optional, Dict, Any
 from datetime import datetime
 from pathlib import Path
 from contextlib import contextmanager
+
+logger = logging.getLogger(__name__)
 
 
 class Database:
@@ -48,7 +51,7 @@ class Database:
     
     def init_database(self):
         """Создать таблицы если их нет"""
-        print(f"📦 Инициализация SQLite БД: {self.db_path}")
+        logger.info(f"Initializing SQLite database: {self.db_path}")
         
         with self.get_connection() as conn:
             cursor = conn.cursor()
@@ -188,7 +191,7 @@ class Database:
             
             conn.commit()
             
-            print("✅ Таблицы БД созданы/проверены")
+            logger.info("Database tables created/verified")
     
     def insert_default_agents(self):
         """
@@ -208,7 +211,7 @@ class Database:
             count = cursor.fetchone()[0]
             
             if count > 0:
-                print(f"  ℹ️ В БД уже есть {count} агентов, пропускаем загрузку")
+                logger.info(f"Database already has {count} tools, skipping load")
                 return
             
             # Вставляем всех агентов
@@ -232,11 +235,11 @@ class Database:
                 inserted += 1
             
             conn.commit()
-            print(f"✅ Загружено агентов в БД: {inserted}")
+            logger.info(f"Loaded tools to database: {inserted}")
     
     def clear_all_data(self):
         """Очистить все таблицы (для тестирования)"""
-        print("⚠️ Очистка всех данных...")
+        logger.warning("Clearing all data...")
         
         with self.get_connection() as conn:
             cursor = conn.cursor()
@@ -256,7 +259,7 @@ class Database:
             
             conn.commit()
             
-            print("✅ Все данные очищены")
+            logger.info("All data cleared")
 
 
 # Singleton instance

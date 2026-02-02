@@ -67,7 +67,7 @@ def log_test_info(request):
     if hasattr(request.node, 'rep_call') and request.node.rep_call.failed:
         print(f"✗ FAILED")
     else:
-        print(f"✓ PASSED")
+        print(f"[PASSED]")
 
 
 @pytest.hookimpl(tryfirst=True, hookwrapper=True)

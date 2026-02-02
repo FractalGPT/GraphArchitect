@@ -150,7 +150,7 @@ def example_6_health_check():
     response = requests.get(f"{BASE_URL}/health")
     health = response.json()
     
-    print(f"API Status: {'✓ Online' if health['success'] else '✗ Offline'}")
+    print(f"API Status: {'[Online]' if health['success'] else '[Offline]'}")
     print(f"Message: {health['message']}")
     if health.get('data'):
         print(f"Version: {health['data'].get('version')}")
@@ -176,7 +176,7 @@ if __name__ == "__main__":
         example_5_chat_management()
         
         print("\n" + "="*60)
-        print(" ✓ Все примеры выполнены успешно!")
+        print("[OK] All examples completed successfully!")
         print("="*60)
         
     except requests.exceptions.ConnectionError:

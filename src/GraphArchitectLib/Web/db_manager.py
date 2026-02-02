@@ -22,15 +22,15 @@ from sqlite_repository import get_sqlite_repository
 
 
 def init_database(args):
-    """Инициализировать базу данных"""
+    """Initialize database."""
     print("\n" + "="*70)
-    print("📦 ИНИЦИАЛИЗАЦИЯ БАЗЫ ДАННЫХ")
+    print("DATABASE INITIALIZATION")
     print("="*70)
     
     db = get_database(args.db_path)
     
-    print(f"\n✅ База данных инициализирована: {args.db_path}")
-    print("\nТаблицы:")
+    print(f"\n[OK] Database initialized: {args.db_path}")
+    print("\nTables:")
     
     with db.get_connection() as conn:
         cursor = conn.cursor()
@@ -44,55 +44,55 @@ def init_database(args):
         for table in tables:
             cursor.execute(f"SELECT COUNT(*) FROM {table['name']}")
             count = cursor.fetchone()[0]
-            print(f"  ✓ {table['name']:20} ({count} записей)")
+            print(f"  [OK] {table['name']:20} ({count} records)")
     
     print("\n" + "="*70)
 
 
 def load_agents(args):
-    """Загрузить агентов из agent_library.py в БД"""
+    """Load tools/agents from default library to database."""
     print("\n" + "="*70)
-    print("📥 ЗАГРУЗКА АГЕНТОВ В БАЗУ ДАННЫХ")
+    print("LOADING TOOLS TO DATABASE")
     print("="*70)
     
     db = get_database(args.db_path)
     
-    # Очищаем существующих агентов если флаг установлен
+    # Clear existing agents if force flag is set
     if args.force:
         with db.get_connection() as conn:
             cursor = conn.cursor()
             cursor.execute("DELETE FROM agents")
-            print("  ⚠️ Существующие агенты удалены")
+            print("  [WARNING] Existing tools deleted")
     
-    # Загружаем агентов
+    # Load agents
     db.insert_default_agents()
     
-    # Показываем результат
+    # Show result
     with db.get_connection() as conn:
         cursor = conn.cursor()
         cursor.execute("SELECT COUNT(*) FROM agents")
         count = cursor.fetchone()[0]
         
-        print(f"\n✅ В БД сейчас {count} агентов")
+        print(f"\n[OK] Database now has {count} tools")
     
     print("="*70)
 
 
 def list_agents(args):
-    """Показать список всех агентов"""
+    """Show list of all tools/agents."""
     print("\n" + "="*70)
-    print("👥 СПИСОК АГЕНТОВ В БД")
+    print("TOOL LIST FROM DATABASE")
     print("="*70)
     
     repo = get_sqlite_repository(args.db_path)
     agents = repo.get_all_agents()
     
     if not agents:
-        print("\n  ⚠️ Агенты не найдены")
-        print("  Выполните: python db_manager.py load_agents")
+        print("\n  [WARNING] No tools found")
+        print("  Run: python db_manager.py load_agents")
         return
     
-    print(f"\nВсего агентов: {len(agents)}\n")
+    print(f"\nTotal tools: {len(agents)}\n")
     
     # Группируем по типу
     by_type = {}
@@ -118,9 +118,9 @@ def list_agents(args):
 
 
 def show_statistics(args):
-    """Показать статистику БД"""
+    """Show database statistics."""
     print("\n" + "="*70)
-    print("📊 СТАТИСТИКА БАЗЫ ДАННЫХ")
+    print("DATABASE STATISTICS")
     print("="*70)
     
     db = get_database(args.db_path)
@@ -177,68 +177,69 @@ def show_statistics(args):
 
 
 def clear_data(args):
-    """Очистить все данные"""
+    """Clear all data."""
     print("\n" + "="*70)
-    print("⚠️ ОЧИСТКА ДАННЫХ")
+    print("WARNING: CLEARING ALL DATA")
     print("="*70)
     
     if not args.force:
-        response = input("\nВы уверены? Все данные будут удалены! (yes/no): ")
+        response = input("\nAre you sure? All data will be deleted! (yes/no): ")
         if response.lower() != 'yes':
-            print("Отменено")
+            print("Cancelled")
             return
     
     db = get_database(args.db_path)
     db.clear_all_data()
     
-    print("\n✅ Все данные очищены")
+    print("\n[OK] All data cleared")
     print("="*70)
 
 
 def backup_database(args):
-    """Создать backup БД"""
+    """Create database backup."""
     print("\n" + "="*70)
-    print("💾 BACKUP БАЗЫ ДАННЫХ")
+    print("DATABASE BACKUP")
     print("="*70)
     
     db_file = Path(args.db_path)
     
     if not db_file.exists():
-        print(f"\n❌ Файл БД не найден: {args.db_path}")
+        print(f"\n[ERROR] Database file not found: {args.db_path}")
         return
     
-    # Создаем имя backup файла
+    # Create backup filename
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
     backup_file = db_file.parent / f"{db_file.stem}_backup_{timestamp}{db_file.suffix}"
     
-    # Копируем файл
+    # Copy file
     shutil.copy2(db_file, backup_file)
     
     size_mb = backup_file.stat().st_size / (1024 * 1024)
     
-    print(f"\n✅ Backup создан:")
-    print(f"  Файл: {backup_file}")
-    print(f"  Размер: {size_mb:.2f} МБ")
+    print(f"\n[OK] Backup created:")
+    print(f"  File: {backup_file}")
+    print(f"  Size: {size_mb:.2f} MB")
     print("\n" + "="*70)
 
 
 def add_agent(args):
-    """Добавить нового агента вручную"""
+    """Add new tool/agent manually."""
     print("\n" + "="*70)
-    print("➕ ДОБАВЛЕНИЕ АГЕНТА")
+    print("ADD NEW TOOL")
     print("="*70)
     
     from models import Agent
     from sqlite_repository import get_sqlite_repository
+    import uuid
     
-    # Интерактивный ввод
-    agent_id = input("ID агента: ") or f"agent-{uuid.uuid4().hex[:8]}"
-    name = input("Название: ") or "New Agent"
-    agent_type = input("Тип (classification/writing/research и т.д.): ") or "general"
-    icon = input("Иконка (emoji): ") or "🤖"
-    color = input("Цвет (hex): ") or "#6366f1"
-    specialization = input("Специализация: ") or ""
-    cost = float(input("Стоимость ($): ") or "0.01")
+    # Interactive input
+    agent_id = input("Tool ID: ") or f"agent-{uuid.uuid4().hex[:8]}"
+    name = input("Name: ") or "New Tool"
+    agent_type = input("Type (classification/writing/research etc.): ") or "general"
+    icon = input("Icon: ") or "T"
+    color = input("Color (hex): ") or "#6366f1"
+    specialization = input("Specialization: ") or ""
+    cost = float(input("Cost ($): ") or "0.01")
     
     agent = Agent(
         id=agent_id,
@@ -258,14 +259,14 @@ def add_agent(args):
     repo = get_sqlite_repository(args.db_path)
     repo.save_agent(agent)
     
-    print(f"\n✅ Агент добавлен: {agent.name} ({agent.id})")
+    print(f"\n[OK] Tool added: {agent.name} ({agent.id})")
     print("="*70)
 
 
 def export_agents(args):
-    """Экспортировать агентов в JSON"""
+    """Export tools/agents to JSON."""
     print("\n" + "="*70)
-    print("📤 ЭКСПОРТ АГЕНТОВ")
+    print("EXPORT TOOLS")
     print("="*70)
     
     repo = get_sqlite_repository(args.db_path)
@@ -273,7 +274,7 @@ def export_agents(args):
     
     output_file = args.output or "agents_export.json"
     
-    # Конвертируем в JSON
+    # Convert to JSON
     agents_data = [
         {
             'id': a.id,
@@ -293,14 +294,14 @@ def export_agents(args):
     with open(output_file, 'w', encoding='utf-8') as f:
         json.dump(agents_data, f, ensure_ascii=False, indent=2)
     
-    print(f"\n✅ Экспортировано {len(agents)} агентов в {output_file}")
+    print(f"\n[OK] Exported {len(agents)} tools to {output_file}")
     print("="*70)
 
 
 def import_agents(args):
-    """Импортировать агентов из JSON"""
+    """Import tools/agents from JSON."""
     print("\n" + "="*70)
-    print("📥 ИМПОРТ АГЕНТОВ")
+    print("IMPORT TOOLS")
     print("="*70)
     
     import json
@@ -310,7 +311,7 @@ def import_agents(args):
     input_file = args.input
     
     if not Path(input_file).exists():
-        print(f"\n❌ Файл не найден: {input_file}")
+        print(f"\n[ERROR] File not found: {input_file}")
         return
     
     with open(input_file, 'r', encoding='utf-8') as f:
@@ -324,7 +325,7 @@ def import_agents(args):
         repo.save_agent(agent)
         imported += 1
     
-    print(f"\n✅ Импортировано агентов: {imported}")
+    print(f"\n[OK] Imported {imported} tools")
     print("="*70)
 
 
@@ -397,12 +398,12 @@ def main():
         try:
             command_func(args)
         except Exception as e:
-            print(f"\n❌ Ошибка: {e}")
+            print(f"\n[ERROR] {e}")
             import traceback
             traceback.print_exc()
             sys.exit(1)
     else:
-        print(f"❌ Неизвестная команда: {args.command}")
+        print(f"[ERROR] Unknown command: {args.command}")
         parser.print_help()
         sys.exit(1)
 

@@ -1,3 +1,7 @@
+"""
+Main FastAPI application for GraphArchitect Web API.
+Provides REST API and WebSocket functionality.
+"""
 from fastapi import FastAPI, Request, UploadFile, File, Form
 from fastapi.responses import HTMLResponse, StreamingResponse
 from fastapi.staticfiles import StaticFiles
@@ -6,107 +10,119 @@ from fastapi.middleware.cors import CORSMiddleware
 import asyncio
 import json
 import os
+import socket
+import logging
 from datetime import datetime
 from typing import List, Optional
+from pathlib import Path
 import aiofiles
 
-# Импортируем API router
 from api_router import api_router
 from models import MessageRequest
 from services import ChatService
+from agent_library import get_all_agents
+from workflow_templates import get_all_templates
+import config
 
-# Импортируем WebSocket manager
+# WebSocket manager
 import socketio
 from websocket_manager import sio
-from workflow_templates import get_all_templates
-from agent_library import get_all_agents
 
+# Configure logging
+logging.basicConfig(
+    level=getattr(logging, config.LOG_LEVEL),
+    format=config.LOG_FORMAT
+)
+logger = logging.getLogger(__name__)
+
+# Initialize FastAPI app
 app = FastAPI(
-    title="Graph Architect", 
+    title="GraphArchitect", 
     description="Multi-Agent System with Dynamic Workflow and Competitive Agent Selection",
-    version="3.0.0"
+    version=config.API_VERSION
 )
 
-# CORS для API
+# CORS middleware
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # В production указать конкретные домены
+    allow_origins=config.CORS_ORIGINS,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
-# Подключаем API router
+# Mount API router
 app.include_router(api_router)
 
-# Настройка статики и шаблонов для GUI
+# Static files and templates
 app.mount("/static", StaticFiles(directory="static"), name="static")
 templates = Jinja2Templates(directory="templates")
 
-# Инициализируем сервисы
+# Initialize services
 chat_service = ChatService()
-
-# Доступные агенты для GUI
-AVAILABLE_AGENTS = [
-    {"name": "Deep Research", "avatar": "🔬", "color": "#10b981", "desc": "Доступен"},
-    {"name": "Marketing AI", "avatar": "📈", "color": "#f59e0b", "desc": "Доступен"},
-    {"name": "Physics Agent", "avatar": "⚛️", "color": "#ec4899", "desc": "Доступен"},
-    {"name": "Medical Agent", "avatar": "🏥", "color": "#ef4444", "desc": "Доступен"},
-    {"name": "General Agent", "avatar": "🤖", "color": "#6366f1", "desc": "Доступен"}
-]
 
 
 def format_file_size(size_bytes: int) -> str:
-    """Форматирование размера файла"""
-    for unit in ['Б', 'КБ', 'МБ', 'ГБ']:
+    """Format file size in human-readable format."""
+    for unit in ['B', 'KB', 'MB', 'GB']:
         if size_bytes < 1024.0:
             return f"{size_bytes:.1f} {unit}"
         size_bytes /= 1024.0
-    return f"{size_bytes:.1f} ТБ"
+    return f"{size_bytes:.1f} TB"
 
 
-def get_file_icon(filename: str) -> str:
-    """Получение иконки по типу файла"""
+def get_file_type(filename: str) -> str:
+    """Get file type category from extension."""
     ext = os.path.splitext(filename)[1].lower()
-    icons = {
-        '.pdf': '📕',
-        '.doc': '📘', '.docx': '📘',
-        '.txt': '📄',
-        '.jpg': '🖼️', '.jpeg': '🖼️', '.png': '🖼️', '.gif': '🖼️',
-        '.mp3': '🎵', '.wav': '🎵', '.m4a': '🎵',
-        '.zip': '🗜️', '.rar': '🗜️', '.7z': '🗜️'
-    }
-    return icons.get(ext, '📎')
+    
+    if ext in ['.pdf']:
+        return 'pdf'
+    elif ext in ['.doc', '.docx']:
+        return 'document'
+    elif ext in ['.txt']:
+        return 'text'
+    elif ext in ['.jpg', '.jpeg', '.png', '.gif', '.webp']:
+        return 'image'
+    elif ext in ['.mp3', '.wav', '.m4a']:
+        return 'audio'
+    elif ext in ['.zip', '.rar', '.7z']:
+        return 'archive'
+    else:
+        return 'file'
 
 
 @app.get("/", response_class=HTMLResponse)
 async def home(request: Request):
-    """Главная страница - старый интерфейс"""
+    """Main page with chat interface."""
     templates_list = get_all_templates()
+    agents = get_all_agents()
+    
+    # Convert agents to simple format for frontend
+    agents_list = [
+        {
+            "name": agent.name,
+            "color": agent.color,
+            "desc": "Available"
+        }
+        for agent in agents[:5]  # Show first 5
+    ]
+    
     return templates.TemplateResponse("index.html", {
         "request": request,
-        "agents": AVAILABLE_AGENTS,
+        "agents": agents_list,
         "templates": templates_list
-    })
-
-
-@app.get("/visualizer", response_class=HTMLResponse)
-async def workflow_visualizer(request: Request):
-    """Страница визуализации workflow с конкурентным выбором агентов"""
-    return templates.TemplateResponse("workflow_view.html", {
-        "request": request
     })
 
 
 @app.get("/api/workflow-templates")
 async def get_workflow_templates():
-    """Получить список доступных шаблонов workflow"""
+    """Get list of available workflow templates."""
     return {"templates": get_all_templates()}
 
 
 @app.get("/api/agents-library")
 async def get_agents_library():
-    """Получить библиотеку всех агентов"""
+    """Get library of all agents from database."""
     agents = get_all_agents()
     return {
         "agents": [
@@ -127,14 +143,16 @@ async def get_agents_library():
 
 @app.post("/upload-files")
 async def upload_files(files: List[UploadFile] = File(...)):
-    """Загрузка файлов"""
+    """Upload files to server."""
     uploaded = []
 
-    for file in files:
-        # Сохранение файла (в production использовать постоянное хранилище)
-        file_path = f"uploads/{file.filename}"
-        os.makedirs("uploads", exist_ok=True)
+    # Ensure upload directory exists
+    config.UPLOAD_DIR.mkdir(exist_ok=True)
 
+    for file in files:
+        # Save file
+        file_path = config.UPLOAD_DIR / file.filename
+        
         async with aiofiles.open(file_path, 'wb') as f:
             content = await file.read()
             await f.write(content)
@@ -142,15 +160,15 @@ async def upload_files(files: List[UploadFile] = File(...)):
         uploaded.append({
             "name": file.filename,
             "size": len(content),
-            "icon": get_file_icon(file.filename)
+            "type": get_file_type(file.filename)
         })
 
-    # Генерация HTML для отображения файлов
+    # Generate HTML for displaying files
     html = ""
     for file_info in uploaded:
         html += f"""
         <div class="file-item">
-            <div class="file-icon">{file_info['icon']}</div>
+            <div class="file-icon">{file_info['type']}</div>
             <div class="file-details">
                 <div class="file-name">{file_info['name']}</div>
                 <div class="file-size">{format_file_size(file_info['size'])}</div>
@@ -169,12 +187,12 @@ async def chat_stream_gui(
         message: str = Form(...),
         files: Optional[str] = Form(None)
 ):
-    """Потоковый вывод для GUI (HTML формат)"""
+    """Streaming chat response for GUI (HTML format)."""
     
-    # Используем сервис для обработки
+    # Parse uploaded files
     file_list = json.loads(files) if files else []
     
-    # Генерируем chat_id для GUI сессии (или получаем из сессии)
+    # Generate chat_id for GUI session
     chat_id = "gui_session_" + datetime.now().strftime("%Y%m%d%H%M%S")
     
     msg_request = MessageRequest(
@@ -184,36 +202,36 @@ async def chat_stream_gui(
     )
 
     async def generate():
-        # Начальное сообщение с файлами
+        # Initial message with files
         if file_list:
             yield '<div class="message assistant-message">'
             yield '<div class="message-content">'
-            yield '<strong>📎 Загруженные файлы:</strong><br><br>'
+            yield '<strong>Uploaded files:</strong><br><br>'
             for file_info in file_list:
-                yield f'- {file_info["icon"]} {file_info["name"]} ({format_file_size(file_info["size"])})<br>'
+                yield f'- {file_info["type"]} {file_info["name"]} ({format_file_size(file_info["size"])})<br>'
             yield '<br>---<br><br>'
         else:
             yield '<div class="message assistant-message"><div class="message-content">'
         
-        # Получаем стрим от сервиса и конвертируем в HTML
+        # Get stream from service and convert to HTML
         async for chunk in chat_service.process_message_stream(msg_request):
             if chunk.type == "workflow":
-                # Парсим workflow и отправляем только массив agents
+                # Parse workflow and send only agents array
                 workflow_data = json.loads(chunk.content)
                 agents_json = json.dumps(workflow_data.get('agents', []))
                 yield f'<span data-workflow-agents=\'{agents_json}\' style="display:none;"></span>'
             
             elif chunk.type == "agent_start":
-                # Маркер начала работы агента
+                # Agent start marker
                 yield f'<span data-agent-start="{chunk.agent_id}" style="display:none;"></span>'
                 yield f'<strong>{chunk.content}</strong><br><br>'
             
             elif chunk.type == "agent_complete":
-                # Маркер завершения
+                # Agent complete marker
                 yield f'<span data-agent-complete="{chunk.agent_id}" style="display:none;"></span>'
             
             elif chunk.type == "text":
-                # Текстовый контент
+                # Text content
                 yield chunk.content
         
         yield '</div></div>'
@@ -221,37 +239,56 @@ async def chat_stream_gui(
     return StreamingResponse(generate(), media_type="text/html")
 
 
-# Оборачиваем FastAPI приложение в Socket.IO
-# cors_allowed_origins='*' уже задано в websocket_manager.py
+# Wrap FastAPI app in Socket.IO
 combined_asgi_app = socketio.ASGIApp(sio, app, socketio_path='/socket.io')
+
+
+def is_port_available(port: int) -> bool:
+    """Check if port is available."""
+    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+        try:
+            s.bind(('127.0.0.1', port))
+            return True
+        except OSError:
+            return False
+
+
+def find_available_port(start: int = None, end: int = None) -> int:
+    """Find available port in range."""
+    start = start or config.PORT_START
+    end = end or config.PORT_END
+    
+    for port in range(start, end + 1):
+        if is_port_available(port):
+            return port
+    
+    raise RuntimeError(f"No available port found in range {start}-{end}")
+
 
 if __name__ == "__main__":
     import uvicorn
-    import socket
-
-    os.makedirs("uploads", exist_ok=True)
     
-    # Функция для проверки доступности порта
-    def is_port_available(port: int) -> bool:
-        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
-            try:
-                s.bind(('127.0.0.1', port))
-                return True
-            except OSError:
-                return False
+    # Ensure upload directory exists
+    config.UPLOAD_DIR.mkdir(exist_ok=True)
     
-    # Ищем свободный порт
-    port = 8000
-    while not is_port_available(port) and port < 8010:
-        print(f"[WARNING] Port {port} zaniat, probuem sleduyuschiy...")
-        port += 1
-    
-    if port >= 8010:
-        print("[ERROR] Ne udalos naiti svobodnyi port v diapazone 8000-8010")
-        print("Ostanovite drugie protsessy ili izmenite port vruchnuyu")
-    else:
-        print(f"[OK] Zapusk servera na portu {port}")
-        print(f"[WEB] Otkroite v brauzere: http://127.0.0.1:{port}")
-        print(f"[API] API dokumentatsiya: http://127.0.0.1:{port}/docs")
-        print(f"[WS] Socket.IO slushayet na /socket.io")
-        uvicorn.run(combined_asgi_app, host="127.0.0.1", port=port, log_level="info")
+    try:
+        # Find available port
+        port = find_available_port()
+        
+        logger.info(f"Starting server on port {port}")
+        logger.info(f"Web interface: http://127.0.0.1:{port}")
+        logger.info(f"API documentation: http://127.0.0.1:{port}/docs")
+        logger.info(f"Socket.IO listening on /socket.io")
+        
+        uvicorn.run(
+            combined_asgi_app, 
+            host=config.HOST, 
+            port=port, 
+            log_level=config.LOG_LEVEL.lower()
+        )
+        
+    except RuntimeError as e:
+        logger.error(str(e))
+        logger.error("Stop other processes or change port manually")
+    except Exception as e:
+        logger.error(f"Failed to start server: {e}")
