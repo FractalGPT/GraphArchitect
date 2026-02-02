@@ -38,7 +38,7 @@ from grapharchitect.services.feedback.feedback_data import FeedbackData, Feedbac
 from grapharchitect.services.feedback.simple_critic import SimpleCritic
 
 from models import Agent, MessageChunk
-from agent_library import get_all_agents, get_agent
+from repository import get_repository
 
 
 class AgentTool(BaseTool):
@@ -291,8 +291,9 @@ class GraphArchitectBridge:
         logger.info(f"GraphArchitectBridge ready ({len(self.tools)} tools)")
     
     def _convert_agents_to_tools(self) -> List[BaseTool]:
-        """Конвертировать всех агентов из agent_library в BaseTool"""
-        agents = get_all_agents()
+        """Конвертировать всех агентов из БД в BaseTool"""
+        repo = get_repository()
+        agents = repo.get_all_agents()
         tools = []
         
         logger.info(f"Converting {len(agents)} tools to BaseTool...")

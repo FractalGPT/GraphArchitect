@@ -7,6 +7,7 @@ from typing import Dict
 from workflow_simulator import WorkflowSimulator
 from workflow_templates import get_workflow_template
 from models import WorkflowChain
+from repository import get_repository
 import asyncio
 
 logger = logging.getLogger(__name__)
@@ -43,7 +44,7 @@ async def disconnect(sid):
             try:
                 await simulator.stop()
             except Exception as e:
-                print(f"Error stopping simulator on disconnect: {e}")
+                logger.error(f"Error stopping simulator on disconnect: {e}")
             to_remove.append(workflow_id)
     
     for workflow_id in to_remove:
@@ -118,7 +119,7 @@ async def stop_workflow(sid, data):
             await simulator.stop()  # Теперь async
             del active_simulators[workflow_id]
             
-            print(f"🛑 Workflow stopped: {workflow_id}")
+            logger.info(f"Workflow stopped: {workflow_id}")
         else:
             await sio.emit('error', {
                 'message': f'Workflow {workflow_id} not found'
@@ -147,9 +148,9 @@ async def get_templates(sid, data=None):
 @sio.event
 async def get_agents(sid, data=None):
     """Получить список всех агентов"""
-    from agent_library import get_all_agents
+    repo = get_repository()
+    agents = repo.get_all_agents()
     
-    agents = get_all_agents()
     agents_data = [
         {
             'id': agent.id,

@@ -15,6 +15,13 @@ sys.path.insert(0, str(Path(__file__).parent))
 # ==================== Фикстуры ====================
 
 @pytest.fixture(scope="session")
+def repository():
+    """Repository для тестов"""
+    from repository import get_repository
+    return get_repository()
+
+
+@pytest.fixture(scope="session")
 def grapharchitect_bridge():
     """GraphArchitect Bridge для тестов"""
     try:
@@ -25,20 +32,18 @@ def grapharchitect_bridge():
 
 
 @pytest.fixture
-def sample_agent():
+def sample_agent(repository):
     """Тестовый агент"""
-    from agent_library import get_agent
-    return get_agent("agent-classifier-gpt4")
+    return repository.get_agent("agent-classifier-gpt4")
 
 
 @pytest.fixture
-def sample_agents_list():
+def sample_agents_list(repository):
     """Список тестовых агентов"""
-    from agent_library import get_agent
     return [
-        get_agent("agent-classifier-gpt4"),
-        get_agent("agent-classifier-claude"),
-        get_agent("agent-classifier-local")
+        repository.get_agent("agent-classifier-gpt4"),
+        repository.get_agent("agent-classifier-claude"),
+        repository.get_agent("agent-classifier-local")
     ]
 
 
@@ -65,7 +70,7 @@ def log_test_info(request):
     yield
     
     if hasattr(request.node, 'rep_call') and request.node.rep_call.failed:
-        print(f"✗ FAILED")
+        print(f"[FAILED]")
     else:
         print(f"[PASSED]")
 

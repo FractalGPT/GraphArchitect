@@ -81,7 +81,7 @@ class TrainingService:
             # Добавляем в feedback collector
             self.bridge.training.feedback_collector.add_feedback(feedback)
             
-            print(f"  📝 Получена обратная связь для {task_id}: {quality_score:.2f}")
+            logger.info(f"Feedback received for {task_id}: {quality_score:.2f}")
             
             # TODO: Получить ExecutionContext для обучения
             # Сейчас контексты не сохраняются, нужно добавить в repository

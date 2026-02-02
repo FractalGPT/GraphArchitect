@@ -84,11 +84,12 @@ def check_agent_conversion():
     print("-"*70)
     
     try:
-        from agent_library import get_all_agents
+        from repository import get_repository
         from grapharchitect_bridge import AgentTool
         from grapharchitect.entities.base_tool import BaseTool
         
-        agents = get_all_agents()
+        repo = get_repository()
+        agents = repo.get_all_agents()
         print(f"  Loaded agents: {len(agents)}")
         
         if agents:
@@ -134,10 +135,11 @@ def check_softmax_selection():
     
     try:
         from grapharchitect_bridge import get_bridge
-        from agent_library import get_all_agents
+        from repository import get_repository
         
         bridge = get_bridge()
-        agents = get_all_agents()[:5]  # Use first 5 tools
+        repo = get_repository()
+        agents = repo.get_all_agents()[:5]  # Use first 5 tools
         
         # Convert to tools
         tools = [bridge.agent_to_tool_map[a.id] for a in agents if a.id in bridge.agent_to_tool_map]

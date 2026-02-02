@@ -6,7 +6,7 @@ import random
 import logging
 from typing import Dict, Any, Optional, Callable, List
 from models import WorkflowChain, WorkflowStep, CandidateProgress
-from agent_library import get_agent
+from repository import get_repository
 
 logger = logging.getLogger(__name__)
 
@@ -76,7 +76,7 @@ class WorkflowSimulator:
 
             for step_index, step in enumerate(self.workflow.steps):
                 if not self.is_running:
-                    print(f"🛑 Workflow {self.workflow.chat_id} was stopped before step {step_index}")
+                    logger.info(f"Workflow {self.workflow.chat_id} was stopped before step {step_index}")
                     break
                 
                 self.current_step_index = step_index
@@ -510,7 +510,8 @@ class WorkflowSimulator:
     
     async def execute_task(self, step: WorkflowStep, winner: Dict[str, Any]):
         """Симуляция выполнения задачи победившим агентом"""
-        agent = get_agent(winner["id"])
+        repo = get_repository()
+        agent = repo.get_agent(winner["id"])
         if not agent:
             return
         
@@ -565,7 +566,7 @@ class WorkflowSimulator:
     
     async def stop(self):
         """Остановить выполнение"""
-        print("🛑 Stopping workflow...")
+        logger.info("Stopping workflow...")
         self.is_running = False
         
         # Отправляем событие об остановке
@@ -578,4 +579,4 @@ class WorkflowSimulator:
         except Exception as e:
             print(f"Error sending stop event: {e}")
         
-        print("🛑 Workflow stopped")
+        logger.info("Workflow stopped")

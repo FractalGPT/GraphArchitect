@@ -119,10 +119,11 @@ for key_name, key_value in api_keys.items():
 # 8. Test tool execution
 print("\n[8] Testing tool execution:")
 try:
-    from agent_library import get_all_agents
+    from repository import get_repository
     from grapharchitect_bridge import AgentTool
     
-    agents = get_all_agents()
+    repo = get_repository()
+    agents = repo.get_all_agents()
     if agents:
         test_agent = agents[0]
         tool = AgentTool(test_agent)

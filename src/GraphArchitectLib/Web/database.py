@@ -195,13 +195,13 @@ class Database:
     
     def insert_default_agents(self):
         """
-        Вставить дефолтных агентов из agent_library.py в БД.
+        Вставить дефолтных агентов в БД.
         
         Вызывается один раз при первом запуске.
         """
-        from agent_library import AGENT_LIBRARY
+        from models import Agent
         
-        print("📥 Загрузка агентов в БД...")
+        logger.info("Loading default tools to database...")
         
         with self.get_connection() as conn:
             cursor = conn.cursor()
@@ -214,9 +214,12 @@ class Database:
                 logger.info(f"Database already has {count} tools, skipping load")
                 return
             
+            # Дефолтные агенты (minimal set для старта)
+            default_agents = self._get_default_agents()
+            
             # Вставляем всех агентов
             inserted = 0
-            for agent_id, agent in AGENT_LIBRARY.items():
+            for agent in default_agents:
                 cursor.execute("""
                     INSERT OR REPLACE INTO agents 
                     (id, name, type, icon, color, specialization, capabilities, cost, metrics)
@@ -236,6 +239,83 @@ class Database:
             
             conn.commit()
             logger.info(f"Loaded tools to database: {inserted}")
+    
+    def _get_default_agents(self):
+        """Получить список дефолтных агентов для первоначальной загрузки."""
+        from models import Agent
+        
+        return [
+            # Classifiers
+            Agent(id="agent-classifier-gpt4", name="GPT-4 Classifier", type="classification", icon="C1", color="#10b981", 
+                  specialization="High accuracy classification", capabilities=["advanced_nlp"], cost=0.03, 
+                  metrics={"avgResponseTime": 2800, "avgScore": 0.98}),
+            Agent(id="agent-classifier-claude", name="Claude Classifier", type="classification", icon="C2", color="#6366f1",
+                  specialization="Deep context understanding", capabilities=["reasoning"], cost=0.02,
+                  metrics={"avgResponseTime": 3200, "avgScore": 0.95}),
+            Agent(id="agent-classifier-local", name="Local Classifier", type="classification", icon="C3", color="#8b5cf6",
+                  specialization="Fast local processing", capabilities=["privacy"], cost=0.001,
+                  metrics={"avgResponseTime": 1200, "avgScore": 0.78}),
+            Agent(id="agent-classifier-fast", name="Fast Classifier", type="classification", icon="C4", color="#eab308",
+                  specialization="Ultra-fast analysis", capabilities=["speed"], cost=0.005,
+                  metrics={"avgResponseTime": 800, "avgScore": 0.72}),
+            
+            # Content generators  
+            Agent(id="agent-responder-creative", name="Creative Responder", type="content_generation", icon="W1", color="#ec4899",
+                  specialization="Creative responses", capabilities=["storytelling"], cost=0.025,
+                  metrics={"avgResponseTime": 4200, "avgScore": 0.85}),
+            Agent(id="agent-responder-formal", name="Formal Responder", type="content_generation", icon="W2", color="#3b82f6",
+                  specialization="Professional tone", capabilities=["clarity"], cost=0.02,
+                  metrics={"avgResponseTime": 3800, "avgScore": 0.88}),
+            Agent(id="agent-responder-technical", name="Technical Responder", type="content_generation", icon="W3", color="#14b8a6",
+                  specialization="Technical documentation", capabilities=["precision"], cost=0.022,
+                  metrics={"avgResponseTime": 4100, "avgScore": 0.89}),
+            Agent(id="agent-responder-friendly", name="Friendly Responder", type="content_generation", icon="W4", color="#f97316",
+                  specialization="Friendly communication", capabilities=["empathy"], cost=0.018,
+                  metrics={"avgResponseTime": 3500, "avgScore": 0.82}),
+            
+            # QA tools
+            Agent(id="agent-qa-strict", name="Strict QA", type="quality_assurance", icon="Q1", color="#ef4444",
+                  specialization="Strict quality control", capabilities=["validation"], cost=0.01,
+                  metrics={"avgResponseTime": 2200, "avgScore": 0.99}),
+            Agent(id="agent-qa-balanced", name="Balanced QA", type="quality_assurance", icon="Q2", color="#f59e0b",
+                  specialization="Balanced review", capabilities=["fairness"], cost=0.008,
+                  metrics={"avgResponseTime": 2000, "avgScore": 0.87}),
+            Agent(id="agent-qa-fast", name="Fast QA", type="quality_assurance", icon="Q3", color="#10b981",
+                  specialization="Quick validation", capabilities=["speed"], cost=0.005,
+                  metrics={"avgResponseTime": 1000, "avgScore": 0.76}),
+            
+            # Parsers
+            Agent(id="agent-parser-fast", name="Fast Parser", type="parsing", icon="P1", color="#6366f1",
+                  specialization="Quick parsing", capabilities=["speed"], cost=0.002,
+                  metrics={"avgResponseTime": 500, "avgScore": 0.80}),
+            
+            # Writers and editors
+            Agent(id="agent-technical-writer", name="Technical Writer", type="writing", icon="W5", color="#8b5cf6",
+                  specialization="Technical documentation and specs", capabilities=["technical_writing"], cost=0.025,
+                  metrics={"avgResponseTime": 4500, "avgScore": 0.90}),
+            Agent(id="agent-structured-outliner", name="Structured Outliner", type="planning", icon="P2", color="#f59e0b",
+                  specialization="Creating structured outlines", capabilities=["planning", "organization"], cost=0.015,
+                  metrics={"avgResponseTime": 2500, "avgScore": 0.89}),
+            Agent(id="agent-style-checker", name="Style Checker", type="editing", icon="E1", color="#ec4899",
+                  specialization="Style and grammar checking", capabilities=["style_analysis"], cost=0.012,
+                  metrics={"avgResponseTime": 1800, "avgScore": 0.89}),
+            Agent(id="agent-style-improver", name="Style Improver", type="editing", icon="E2", color="#14b8a6",
+                  specialization="Style improvement suggestions", capabilities=["style_improvement"], cost=0.018,
+                  metrics={"avgResponseTime": 3200, "avgScore": 0.87}),
+            
+            # Analysis and reporting
+            Agent(id="agent-summary-reporter", name="Summary Reporter", type="reporting", icon="R1", color="#3b82f6",
+                  specialization="Creating summary reports", capabilities=["summarization", "reporting"], cost=0.020,
+                  metrics={"avgResponseTime": 3500, "avgScore": 0.84}),
+            Agent(id="agent-trend-analyzer", name="Trend Analyzer", type="research", icon="A1", color="#10b981",
+                  specialization="Analyzing trends and patterns", capabilities=["analysis", "insights"], cost=0.028,
+                  metrics={"avgResponseTime": 5000, "avgScore": 0.86}),
+            
+            # Data processing
+            Agent(id="agent-web-scraper", name="Web Scraper", type="code_analysis", icon="D1", color="#6366f1",
+                  specialization="Web data extraction", capabilities=["scraping", "data_extraction"], cost=0.010,
+                  metrics={"avgResponseTime": 2000, "avgScore": 0.83}),
+        ]
     
     def clear_all_data(self):
         """Очистить все таблицы (для тестирования)"""

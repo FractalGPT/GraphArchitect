@@ -14,7 +14,7 @@ import asyncio
 from grapharchitect_bridge import (
     AgentTool, GraphArchitectBridge, get_bridge, is_bridge_available
 )
-from agent_library import get_agent, get_all_agents
+from repository import get_repository
 from models import MessageChunk
 
 
@@ -23,10 +23,10 @@ from models import MessageChunk
 class TestAgentTool:
     """Тесты адаптера Agent → BaseTool"""
     
-    def test_agent_to_tool_conversion(self):
+    def test_agent_to_tool_conversion(self, repository):
         """Конверсия Agent в BaseTool"""
-        agent = get_agent("agent-classifier-gpt4")
-        assert agent is not None, "Агент не найден в библиотеке"
+        agent = repository.get_agent("agent-classifier-gpt4")
+        assert agent is not None, "Агент не найден в БД"
         
         tool = AgentTool(agent)
         
@@ -42,32 +42,32 @@ class TestAgentTool:
         assert tool.input.data_format != ""
         assert tool.output.data_format != ""
     
-    def test_connectors_inference(self):
+    def test_connectors_inference(self, repository):
         """Вывод коннекторов из типа агента"""
         # Classification agent
-        classifier = get_agent("agent-classifier-gpt4")
+        classifier = repository.get_agent("agent-classifier-gpt4")
         tool_classifier = AgentTool(classifier)
         
         assert tool_classifier.input.format == "text|question"
         assert tool_classifier.output.format == "text|category"
         
         # Writing agent
-        writer = get_agent("agent-writer-formal")
+        writer = repository.get_agent("agent-writer-formal")
         if writer:
             tool_writer = AgentTool(writer)
             assert tool_writer.input.format == "text|outline"
             assert tool_writer.output.format == "text|article"
     
-    def test_agent_id_preserved(self):
+    def test_agent_id_preserved(self, repository):
         """ID агента сохраняется"""
-        agent = get_agent("agent-classifier-gpt4")
+        agent = repository.get_agent("agent-classifier-gpt4")
         tool = AgentTool(agent)
         
         assert tool.agent_id == agent.id
     
-    def test_execute_method(self):
+    def test_execute_method(self, repository):
         """Метод execute работает"""
-        agent = get_agent("agent-classifier-gpt4")
+        agent = repository.get_agent("agent-classifier-gpt4")
         tool = AgentTool(agent)
         
         result = tool.execute("test input")
@@ -76,9 +76,9 @@ class TestAgentTool:
         assert isinstance(result, str)
         assert len(result) > 0
     
-    def test_all_agents_convertible(self):
+    def test_all_agents_convertible(self, repository):
         """Все агенты конвертируются в BaseTool"""
-        agents = get_all_agents()
+        agents = repository.get_all_agents()
         
         for agent in agents:
             try:
@@ -117,10 +117,10 @@ class TestGraphArchitectBridge:
         """Проверка доступности моста"""
         assert is_bridge_available() is True
     
-    def test_tools_count(self):
+    def test_tools_count(self, repository):
         """Количество инструментов"""
         bridge = get_bridge()
-        agents = get_all_agents()
+        agents = repository.get_all_agents()
         
         # Должно быть столько же инструментов сколько агентов
         assert len(bridge.tools) == len(agents)

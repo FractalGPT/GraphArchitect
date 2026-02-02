@@ -20,7 +20,7 @@ import aiofiles
 from api_router import api_router
 from models import MessageRequest
 from services import ChatService
-from agent_library import get_all_agents
+from repository import get_repository
 from workflow_templates import get_all_templates
 import config
 
@@ -95,7 +95,8 @@ def get_file_type(filename: str) -> str:
 async def home(request: Request):
     """Main page with chat interface."""
     templates_list = get_all_templates()
-    agents = get_all_agents()
+    repo = get_repository()
+    agents = repo.get_all_agents()
     
     # Convert agents to simple format for frontend
     agents_list = [
@@ -123,7 +124,8 @@ async def get_workflow_templates():
 @app.get("/api/agents-library")
 async def get_agents_library():
     """Get library of all agents from database."""
-    agents = get_all_agents()
+    repo = get_repository()
+    agents = repo.get_all_agents()
     return {
         "agents": [
             {

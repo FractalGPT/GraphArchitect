@@ -140,8 +140,9 @@ class ChatService:
             logger.info("Mode: Simulation (GraphArchitect not available)")
             
             from workflow_templates import get_workflow_template
-            from agent_library import get_agent
             import random
+            
+            repo = self.repo
 
             # 1. PREPARATION (Architecture generation)
             async for chunk in self.generate_graph_architecture_stream(
@@ -172,7 +173,7 @@ class ChatService:
                 await asyncio.sleep(0.3)
 
                 # AGENT SELECTION (Competition)
-                candidates = [get_agent(aid) for aid in step.candidate_agents if get_agent(aid)]
+                candidates = [repo.get_agent(aid) for aid in step.candidate_agents if repo.get_agent(aid)]
                 scores = {c.id: 0 for c in candidates}
                 
                 # Accelerated selection
