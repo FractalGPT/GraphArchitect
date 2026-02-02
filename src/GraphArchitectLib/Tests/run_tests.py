@@ -35,7 +35,7 @@ class TestRunner:
             if test_file:
                 cmd.append(str(test_file))
             else:
-                print(f"❌ Тестовый файл для модуля '{args.module}' не найден")
+                print(f"Тестовый файл для модуля '{args.module}' не найден")
                 return 1
         else:
             cmd.append(str(self.tests_dir))
@@ -53,7 +53,7 @@ class TestRunner:
         # Только unit
         if args.unit:
             cmd.extend(["-m", "unit"])
-            print("🧩 Только unit тесты")
+            print("Только unit тесты")
         
         # Покрытие кода
         if args.coverage:
@@ -62,17 +62,17 @@ class TestRunner:
                 "--cov-report=html",
                 "--cov-report=term-missing"
             ])
-            print("📊 С измерением покрытия кода")
+            print("С измерением покрытия кода")
         
         # Параллельное выполнение
         if args.parallel:
             cmd.extend(["-n", "auto"])
-            print("⚙️ Параллельное выполнение")
+            print("Параллельное выполнение")
         
         # Конкретный тест
         if args.test:
             cmd.append(f"-k {args.test}")
-            print(f"🎯 Запуск теста: {args.test}")
+            print(f"Запуск теста: {args.test}")
         
         # Показывать print
         if args.show_print:
@@ -81,7 +81,7 @@ class TestRunner:
         # Остановка на первой ошибке
         if args.fail_fast:
             cmd.append("-x")
-            print("🛑 Остановка на первой ошибке")
+            print("Остановка на первой ошибке")
         
         # Verbose режим
         if args.verbose:
@@ -93,7 +93,7 @@ class TestRunner:
         
         # Запуск
         print("\n" + "="*70)
-        print("🧪 ЗАПУСК ТЕСТОВ")
+        print(" ЗАПУСК ТЕСТОВ")
         print("="*70)
         print(f"Команда: {' '.join(cmd)}")
         print("="*70 + "\n")
@@ -102,10 +102,10 @@ class TestRunner:
             result = subprocess.run(cmd, cwd=self.tests_dir)
             return result.returncode
         except KeyboardInterrupt:
-            print("\n\n⚠️ Тесты прерваны пользователем")
+            print("\n\nТесты прерваны пользователем")
             return 130
         except Exception as e:
-            print(f"\n\n❌ Ошибка при запуске тестов: {e}")
+            print(f"\n\nОшибка при запуске тестов: {e}")
             return 1
     
     def _get_test_file(self, module_name):
@@ -128,12 +128,12 @@ class TestRunner:
     
     def list_tests(self):
         """Показать список доступных тестов"""
-        print("\n📋 ДОСТУПНЫЕ ТЕСТЫ:\n")
+        print("\nДОСТУПНЫЕ ТЕСТЫ:\n")
         
         test_files = [
             ("test_graph_algorithms.py", "Алгоритмы графа (Dijkstra, A*, Yen, ACO)"),
             ("test_entities.py", "Сущности (BaseTool, Connector, TaskDefinition)"),
-            ("test_selection.py", "⭐ Выбор инструментов (Softmax, Температура)"),
+            ("test_selection.py", "Выбор инструментов (Softmax, Температура)"),
             ("test_services.py", "Сервисы (GraphBuilder, Embedding, Feedback)"),
             ("test_execution_training.py", "Выполнение и обучение"),
             ("test_nli.py", "Естественно-языковой интерфейс"),
@@ -146,7 +146,7 @@ class TestRunner:
             else:
                 print(f"  ✗ {filename:30} - {description} [НЕ НАЙДЕН]")
         
-        print("\n📦 МОДУЛИ ДЛЯ --module:")
+        print("\nМОДУЛИ ДЛЯ --module:")
         modules = ["graph", "entities", "selection", "services", "execution", "training", "nli"]
         for module in modules:
             print(f"  • {module}")

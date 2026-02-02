@@ -6,7 +6,7 @@ RLAIF Trainer - обучение с обратной связью от AI.
 """
 
 import logging
-from typing import List, Optional
+from typing import List, Optional, Dict, Any
 from dataclasses import dataclass
 
 from ..execution.execution_context import ExecutionContext

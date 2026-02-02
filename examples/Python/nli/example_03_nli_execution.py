@@ -11,7 +11,6 @@
 import sys
 from pathlib import Path
 
-# Добавляем библиотеку GraphArchitect в путь
 grapharchitect_path = Path(__file__).parent.parent.parent.parent / "src" / "GraphArchitectLib"
 sys.path.insert(0, str(grapharchitect_path))
 
@@ -52,32 +51,48 @@ class DemoTool(BaseTool):
 
 
 def create_nli_examples(embedding_service):
-    """Создать минимальный датасет NLI."""
+    """Создать расширенный датасет NLI."""
     examples = []
     
-    # Классификация
-    rep1 = TaskRepresentation()
-    rep1.input_connector = Connector("text", "question")
-    rep1.output_connector = Connector("text", "category")
+    # Классификация - несколько вариантов формулировок
+    classification_texts = [
+        "Классифицировать текст",
+        "Определить категорию",
+        "Категоризировать запрос",
+        "Классифицировать запрос службы поддержки",
+        "Определить тип запроса"
+    ]
     
-    item1 = NLIDatasetItem(
-        task_text="Классифицировать текст",
-        task_embedding=embedding_service.embed_text("Классифицировать текст"),
-        representation=rep1
-    )
-    examples.append(item1)
+    for text in classification_texts:
+        rep = TaskRepresentation()
+        rep.input_connector = Connector("text", "question")
+        rep.output_connector = Connector("text", "category")
+        
+        item = NLIDatasetItem(
+            task_text=text,
+            task_embedding=embedding_service.embed_text(text),
+            representation=rep
+        )
+        examples.append(item)
     
     # Вопросы-ответы
-    rep2 = TaskRepresentation()
-    rep2.input_connector = Connector("text", "question")
-    rep2.output_connector = Connector("text", "answer")
+    qa_texts = [
+        "Ответить на вопрос",
+        "Дать ответ",
+        "Предоставить ответ"
+    ]
     
-    item2 = NLIDatasetItem(
-        task_text="Ответить на вопрос",
-        task_embedding=embedding_service.embed_text("Ответить на вопрос"),
-        representation=rep2
-    )
-    examples.append(item2)
+    for text in qa_texts:
+        rep = TaskRepresentation()
+        rep.input_connector = Connector("text", "question")
+        rep.output_connector = Connector("text", "answer")
+        
+        item = NLIDatasetItem(
+            task_text=text,
+            task_embedding=embedding_service.embed_text(text),
+            representation=rep
+        )
+        examples.append(item)
     
     return examples
 
@@ -118,6 +133,11 @@ def main():
     nli.load_dataset(examples)
     
     print(f"  [OK] {len(examples)} примеров загружено")
+    
+    # Показываем что в датасете
+    print(f"\n  Примеры в датасете:")
+    for i, ex in enumerate(examples[:3], 1):
+        print(f"    {i}. \"{ex.task_text}\" → {ex.representation.input_connector.format} → {ex.representation.output_connector.format}")
     print()
     
     # Создание инструментов
@@ -214,12 +234,12 @@ def main():
         print(f"    Вероятность:          {selection.selection_probability:.3f} (softmax)")
         print(f"    Температура:          {selection.temperature:.3f}")
         print(f"    Репутация:            {selected.metadata.reputation:.2f}")
-        print(f"    Top-K кандидатов:     {len(selection.logits)}")
         
-        print(f"\n    Все кандидаты:")
-        for tool_id, prob in sorted(selection.probabilities.items(), key=lambda x: x[1], reverse=True):
-            logit = selection.logits.get(tool_id, 0)
-            print(f"      {tool_id:25} вер={prob:.3f}, логит={logit:.3f}")
+        # Показываем доступную информацию о выборе
+        print(f"\n    Информация о выборе:")
+        print(f"      Выбран из группы инструментов")
+        print(f"      Метод: Softmax с адаптивной температурой")
+        print(f"      Вероятность выбора: {selection.selection_probability:.1%}")
     
     print()
     
@@ -240,19 +260,21 @@ def main():
     print()
     
     # Обучение инструментов
+    print(f"  Обучение {len(context.execution_steps)} инструмента(ов)...")
+    print()
+    
+    # Обучаем используя метод train_all_tools
     tools_to_train = [step.selected_tool for step in context.execution_steps]
     
-    print(f"  Обучение {len(tools_to_train)} инструмента(ов)...")
+    # Сохраняем старые репутации
+    old_reputations = {tool.metadata.tool_name: tool.metadata.reputation for tool in tools_to_train}
     
+    # Обучение всех инструментов на основе датасета
+    training.train_all_tools(tools_to_train)
+    
+    # Показываем изменения
     for tool in tools_to_train:
-        old_rep = tool.metadata.reputation
-        
-        training.update_tool(
-            tool=tool,
-            task_embedding=context.task_embedding,
-            feedbacks=[feedback]
-        )
-        
+        old_rep = old_reputations[tool.metadata.tool_name]
         new_rep = tool.metadata.reputation
         delta = new_rep - old_rep
         

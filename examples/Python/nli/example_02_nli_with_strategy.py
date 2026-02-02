@@ -10,7 +10,6 @@
 import sys
 from pathlib import Path
 
-# Добавляем библиотеку GraphArchitect в путь
 grapharchitect_path = Path(__file__).parent.parent.parent.parent / "src" / "GraphArchitectLib"
 sys.path.insert(0, str(grapharchitect_path))
 

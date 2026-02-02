@@ -364,4 +364,9 @@ def main():
 
 
 if __name__ == "__main__":
+    # Загрузка датасета
+    dataset = TestDataset()
+    tasks = dataset.get_simple_tasks() + dataset.get_medium_tasks()[:5]
+    
+    # Запуск основного теста
     main()
