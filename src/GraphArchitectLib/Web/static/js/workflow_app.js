@@ -18,7 +18,7 @@ class WorkflowVisualizer {
     }
     
     init() {
-        console.log('🚀 Initializing Workflow Visualizer');
+        console.log('[INIT] Initializing Workflow Visualizer');
         this.connectWebSocket();
         this.loadAgentLibrary();
         this.setupEventListeners();
@@ -34,7 +34,7 @@ class WorkflowVisualizer {
         });
         
         this.socket.on('connect', () => {
-            console.log('✅ WebSocket connected!');
+            console.log('[OK] WebSocket connected');
             document.getElementById('stat-status').textContent = 'Connected';
         });
         
@@ -89,6 +89,12 @@ class WorkflowVisualizer {
             formData.append('files', JSON.stringify(files));
             formData.append('planning_algorithm', algorithm);
             formData.append('use_streaming', 'true');
+            
+            // ReWOO Planning
+            const useRewooCheckbox = document.getElementById('use-rewoo-checkbox');
+            if (useRewooCheckbox && useRewooCheckbox.checked) {
+                formData.append('use_rewoo', 'true');
+            }
 
             const response = await fetch(`/api/chat/wf_${Date.now()}/message/stream`, {
                 method: 'POST',
@@ -161,7 +167,7 @@ class WorkflowVisualizer {
             sendBtn.title = 'Остановить выполнение';
             sendBtn.type = 'button'; // Предотвращаем отправку формы
         } else {
-            sendBtn.innerHTML = '🚀';
+            sendBtn.innerHTML = 'Send';
             sendBtn.style.background = 'var(--f-blue)';
             sendBtn.title = 'Отправить сообщение';
             sendBtn.type = 'submit';
@@ -236,7 +242,7 @@ class WorkflowVisualizer {
         
         block.innerHTML = `
             <div class="execution-header">
-                <span class="exec-title" style="font-weight: 600;">⚙️ Выполнение графа агентов...</span>
+                <span class="exec-title" style="font-weight: 600;">Выполнение графа агентов...</span>
                 <span class="toggle-icon">▼</span>
             </div>
             <div class="execution-content"></div>
@@ -259,11 +265,11 @@ class WorkflowVisualizer {
     onWorkflowInfo(data) {
         this.currentWorkflow = data;
         this.renderWorkflowSteps(data.steps);
-        this.addLog('info', `✅ Сгенерирован граф: ${data.name}`);
+        this.addLog('info', `[OK] Сгенерирован граф: ${data.name}`);
     }
 
     onGenerationPhaseStarted(data) {
-        this.addLog('info', `🏗️ ${data.content}`);
+        this.addLog('info', `[INFO] ${data.content}`);
         
         // Гарантируем наличие общего блока выполнения
         if (!this.currentExecutionBlock || this.isWorkflowFinished) {
@@ -277,9 +283,9 @@ class WorkflowVisualizer {
             genContainer.className = 'generation-log-compact';
             genContainer.innerHTML = `
                 <div class="gen-log-phases">
-                    <div class="gen-log-item" data-phase="knn">1. Поиск в k-NN <span class="gen-status">⏳</span></div>
-                    <div class="gen-log-item" data-phase="graph_algo">2. Генерация цепочек <span class="gen-status">⏳</span></div>
-                    <div class="gen-log-item" data-phase="llm_refine">3. Обработка LLM <span class="gen-status">⏳</span></div>
+                    <div class="gen-log-item" data-phase="knn">1. Поиск в k-NN <span class="gen-status">...</span></div>
+                    <div class="gen-log-item" data-phase="graph_algo">2. Генерация цепочек <span class="gen-status">...</span></div>
+                    <div class="gen-log-item" data-phase="llm_refine">3. Обработка LLM <span class="gen-status">...</span></div>
                 </div>
                 <div class="gen-log-progress-bg"><div class="gen-log-progress-fill"></div></div>
             `;
@@ -311,7 +317,7 @@ class WorkflowVisualizer {
             phaseEl.classList.remove('active');
             phaseEl.classList.add('completed');
             const status = phaseEl.querySelector('.gen-status');
-            if (status) status.textContent = '✅';
+            if (status) status.textContent = '[OK]';
         }
         
         // Если это последняя фаза, форсируем 100% на прогресс-баре
@@ -377,7 +383,7 @@ class WorkflowVisualizer {
     
     onAgentSelected(data) {
         const winner = this.agentsLibrary[data.winnerId];
-        this.addLog('success', `🎯 Выбран агент: ${winner.name} (${(data.score * 100).toFixed(0)}%)`);
+        this.addLog('success', `[SELECTED] ${winner.name} (${(data.score * 100).toFixed(0)}%)`);
         
         document.querySelectorAll('.agent-competing-card').forEach(card => {
             const cardId = card.getAttribute('data-agent-id');
@@ -387,7 +393,7 @@ class WorkflowVisualizer {
                 card.classList.add('winner');
                 const badge = card.querySelector('.agent-status-badge');
                 if (badge) {
-                    badge.textContent = '⚙️ Executing';
+                    badge.textContent = 'Executing';
                     badge.className = 'agent-status-badge winner';
                 }
                 // СБРОС ПРОГРЕССА ДЛЯ "ВТОРОГО ПРОХОДА"
@@ -433,7 +439,7 @@ class WorkflowVisualizer {
         }
         
         if (data.progress === 100) {
-            this.addLog('success', `✨ ${this.agentsLibrary[data.agentId].name}: ${data.action}`);
+            this.addLog('success', `[DONE] ${this.agentsLibrary[data.agentId].name}: ${data.action}`);
         }
     }
     
@@ -445,8 +451,8 @@ class WorkflowVisualizer {
     }
     
     onWorkflowCompleted(data) {
-        console.log('🎉 Workflow completed');
-        this.addLog('success', '🎉 Workflow успешно завершен!');
+        console.log('[SUCCESS] Workflow completed');
+        this.addLog('success', '[SUCCESS] Workflow успешно завершен!');
         
         this.stopTimer();
         this.isWorkflowFinished = true;
@@ -463,7 +469,7 @@ class WorkflowVisualizer {
                 this.currentExecutionBlock.classList.add('collapsed');
                 const title = this.currentExecutionBlock.querySelector('.exec-title');
                 const icon = this.currentExecutionBlock.querySelector('.toggle-icon');
-                if (title) title.textContent = '📑 Детали выполнения графа (нажмите для просмотра)';
+                if (title) title.textContent = 'Детали выполнения графа (нажмите для просмотра)';
                 if (icon) icon.textContent = '►';
             }
         }, 1500);
@@ -490,7 +496,7 @@ class WorkflowVisualizer {
             const stepItem = document.createElement('div');
             stepItem.className = 'step-item';
             stepItem.setAttribute('data-step-index', index);
-            stepItem.innerHTML = `<div class="step-card pending"><div class="step-name">${step.name}</div><div class="step-status">⏳</div></div>`;
+            stepItem.innerHTML = `<div class="step-card pending"><div class="step-name">${step.name}</div><div class="step-status">...</div></div>`;
             container.appendChild(stepItem);
             if (index < steps.length - 1) {
                 const arrow = document.createElement('div');
@@ -507,7 +513,7 @@ class WorkflowVisualizer {
         const card = stepItem.querySelector('.step-card');
         card.classList.remove('pending', 'in-progress', 'completed');
         card.classList.add(status);
-        stepItem.querySelector('.step-status').textContent = status === 'in-progress' ? '⚡' : (status === 'completed' ? '✅' : '⏳');
+        stepItem.querySelector('.step-status').textContent = status === 'in-progress' ? '>>>' : (status === 'completed' ? '[OK]' : '...');
     }
     
     addCompetingAgent(agent) {
@@ -526,7 +532,7 @@ class WorkflowVisualizer {
                     <div class="agent-badges-row">
                         <span class="badge-cost">$${cost.toFixed(3)}</span>
                         <span class="badge-quality">🏆 ${quality}%</span>
-                        <span class="badge-time">⏱️ ${time}ms</span>
+                        <span class="badge-time">${time}ms</span>
                     </div>
                 </div>
                 <div class="agent-status-badge competing">Competing</div>

@@ -50,6 +50,15 @@ TEMPERATURE_CONSTANT = float(os.getenv("TEMPERATURE_CONSTANT", "1.0"))
 # NLI
 NLI_DATASET_PATH = DATA_DIR / "nli_examples.json"
 NLI_K_EXAMPLES = int(os.getenv("NLI_K_EXAMPLES", "3"))
+NLI_TYPE = os.getenv("NLI_TYPE", "llm")  # "knn", "qwen", "llm"
+NLI_LLM_BACKEND = os.getenv("NLI_LLM_BACKEND", "openrouter")  # "openrouter", "vllm", "deepseek"
+NLI_LLM_MODEL = os.getenv("NLI_LLM_MODEL", "openai/gpt-3.5-turbo")
+QWEN_MODEL_PATH = os.getenv("QWEN_MODEL_PATH")
+
+# ReWOO Planning
+USE_REWOO = os.getenv("USE_REWOO", "false").lower() == "true"
+REWOO_MODEL = os.getenv("REWOO_MODEL", "google/gemini-1.5-flash")
+GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
 
 # API Keys
 OPENROUTER_API_KEY = os.getenv("OPENROUTER_API_KEY")

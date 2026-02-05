@@ -58,7 +58,7 @@ async function uploadFile(file) {
     // Создаем временный чип с индикатором загрузки
     const chip = document.createElement('div');
     chip.className = 'file-chip loading';
-    chip.innerHTML = `<span>⏳</span> <span>${file.name}</span>`;
+    chip.innerHTML = `<span>[...]</span> <span>${file.name}</span>`;
     fileDisplay.appendChild(chip);
 
     try {

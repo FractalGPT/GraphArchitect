@@ -108,7 +108,11 @@ class ChatService:
             yield MessageChunk(type="gen_phase_complete", phase_id=phase_id)
             await asyncio.sleep(0.2)
 
-    async def process_full_workflow_stream(self, request: MessageRequest) -> AsyncGenerator[MessageChunk, None]:
+    async def process_full_workflow_stream(
+        self, 
+        request: MessageRequest,
+        use_rewoo: bool = None
+    ) -> AsyncGenerator[MessageChunk, None]:
         """
         Full workflow cycle with streaming: Design -> Selection -> Execution.
         
@@ -120,10 +124,13 @@ class ChatService:
         """
         logger.debug(f"Processing workflow with algorithm: {request.planning_algorithm}")
         
+        # Определяем use_rewoo
+        use_rewoo_flag = use_rewoo if use_rewoo is not None else getattr(request, 'use_rewoo', False)
+        
         # Check: Use GraphArchitect or simulation
         if GRAPHARCHITECT_ENABLED and is_bridge_available():
             # REAL execution through GraphArchitect
-            logger.info("Mode: GraphArchitect (real algorithms)")
+            logger.info(f"Mode: GraphArchitect (real algorithms, ReWOO={use_rewoo_flag})")
             
             bridge = get_bridge()
             
@@ -131,7 +138,8 @@ class ChatService:
                 message=request.message,
                 input_data=request.message,
                 algorithm=request.planning_algorithm,
-                top_k=5
+                top_k=5,
+                use_rewoo=use_rewoo_flag
             ):
                 yield chunk
         

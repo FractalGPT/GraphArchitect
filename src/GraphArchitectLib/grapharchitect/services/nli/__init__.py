@@ -18,6 +18,25 @@ try:
 except ImportError:
     RETRIEVER_FACTORY_AVAILABLE = False
 
+# LLM-based NLI (опционально)
+try:
+    from .llm_nli_service import LLMNLIService
+    LLM_NLI_AVAILABLE = True
+except ImportError:
+    LLM_NLI_AVAILABLE = False
+
+try:
+    from .qwen_nli_service import QwenNLIService
+    QWEN_NLI_AVAILABLE = True
+except ImportError:
+    QWEN_NLI_AVAILABLE = False
+
+try:
+    from .nli_service_factory import create_nli_service, create_nli_service_from_env
+    NLI_FACTORY_AVAILABLE = True
+except ImportError:
+    NLI_FACTORY_AVAILABLE = False
+
 # Экспорт
 __all__ = [
     'NLIDatasetItem',
@@ -34,3 +53,12 @@ if FAISS_RETRIEVER_AVAILABLE:
 
 if RETRIEVER_FACTORY_AVAILABLE:
     __all__.extend(['create_knn_retriever', 'create_knn_retriever_from_env'])
+
+if LLM_NLI_AVAILABLE:
+    __all__.append('LLMNLIService')
+
+if QWEN_NLI_AVAILABLE:
+    __all__.append('QwenNLIService')
+
+if NLI_FACTORY_AVAILABLE:
+    __all__.extend(['create_nli_service', 'create_nli_service_from_env'])

@@ -100,7 +100,8 @@ async def send_message_stream(
     message: str = Form(...),
     files: Optional[str] = Form(None),
     planning_algorithm: str = Form("yen_5"),
-    use_streaming: bool = Form(True)
+    use_streaming: bool = Form(True),
+    use_rewoo: bool = Form(False)
 ):
     """
     Унифицированный эндпоинт для работы с графом агентов.
@@ -116,7 +117,8 @@ async def send_message_stream(
             message=message,
             files=file_list,
             planning_algorithm=planning_algorithm,
-            use_streaming=use_streaming
+            use_streaming=use_streaming,
+            use_rewoo=use_rewoo
         )
         
         if not use_streaming:

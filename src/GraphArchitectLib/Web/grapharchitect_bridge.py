@@ -37,6 +37,14 @@ from grapharchitect.services.training.training_orchestrator import TrainingOrche
 from grapharchitect.services.feedback.feedback_data import FeedbackData, FeedbackSource
 from grapharchitect.services.feedback.simple_critic import SimpleCritic
 
+# ReWOO Planning (опционально)
+try:
+    from grapharchitect.planning.rewoo_planner import ReWOOPlanner
+    REWOO_AVAILABLE = True
+except ImportError:
+    REWOO_AVAILABLE = False
+    logger.warning("ReWOO planner not available")
+
 from models import Agent, MessageChunk
 from repository import get_repository
 
@@ -121,11 +129,29 @@ class AgentTool(BaseTool):
                 Connector("image", "raw"),
                 Connector("text", "extracted")
             ),
+            # Дополнительные маппинги для новых типов
+            "parsing": (
+                Connector("text", "raw"),
+                Connector("text", "parsed")
+            ),
+            "analysis": (
+                Connector("text", "question"),
+                Connector("text", "analysis")
+            ),
+            "qa": (
+                Connector("text", "question"),
+                Connector("text", "answer")
+            ),
+            "universal": (
+                Connector("text", "question"),
+                Connector("text", "answer")
+            ),
         }
         
+        # Получаем маппинг или используем универсальный question→answer
         return connector_mappings.get(
             agent.type,
-            (Connector("text", "input"), Connector("text", "output"))
+            (Connector("text", "question"), Connector("text", "answer"))
         )
     
     def execute(self, input_data):
@@ -279,6 +305,18 @@ class GraphArchitectBridge:
         # Обучение (опционально)
         self.training = TrainingOrchestrator(learning_rate=0.01)
         self.critic = SimpleCritic()
+        
+        # ReWOO Planning (всегда доступен для использования по запросу)
+        self.rewoo_planner = None
+        if REWOO_AVAILABLE:
+            try:
+                import config
+                self.rewoo_planner = ReWOOPlanner(
+                    gemini_api_key=getattr(config, 'GEMINI_API_KEY', None)
+                )
+                logger.info("ReWOO Planner initialized and available")
+            except Exception as e:
+                logger.warning(f"ReWOO Planner not available: {e}")
         
         # Конвертация всех агентов в инструменты
         self.tools = self._convert_agents_to_tools()
@@ -550,7 +588,8 @@ class GraphArchitectBridge:
         message: str,
         input_data: any,
         algorithm: str = "yen_5",
-        top_k: int = 5
+        top_k: int = 5,
+        use_rewoo: bool = False
     ) -> AsyncGenerator[MessageChunk, None]:
         """
         Выполнить задачу с real-time стримингом прогресса.
@@ -613,13 +652,49 @@ class GraphArchitectBridge:
         
         await asyncio.sleep(0.3)
         
-        # 3. Берем первую (лучшую) стратегию
+        # 3. ReWOO Planning (если включен)
+        rewoo_plan = None
+        if use_rewoo and self.rewoo_planner:
+            yield MessageChunk(
+                type="gen_phase_start",
+                phase_id="rewoo_planning",
+                content=f"Создание детального плана (ReWOO с Gemini)..."
+            )
+            
+            rewoo_plan = self.rewoo_planner.create_plan(
+                task_description=message,
+                strategies=strategies,
+                algorithm_used=algorithm
+            )
+            
+            if rewoo_plan:
+                yield MessageChunk(
+                    type="gen_phase_complete",
+                    phase_id="rewoo_planning",
+                    metadata={
+                        "steps_in_plan": len(rewoo_plan.steps),
+                        "reasoning": rewoo_plan.reasoning[:200],
+                        "estimated_time": rewoo_plan.estimated_time,
+                        "estimated_cost": rewoo_plan.estimated_cost
+                    }
+                )
+            else:
+                yield MessageChunk(
+                    type="gen_phase_complete",
+                    phase_id="rewoo_planning",
+                    content="ReWOO plan не создан, используется базовая стратегия"
+                )
+            
+            await asyncio.sleep(0.3)
+        
+        # Берем первую (лучшую) стратегию
         strategy = strategies[0]
         
         yield MessageChunk(
             type="gen_phase_start",
             phase_id="strategy_selected",
-            content=f"Выбрана стратегия из {len(strategy)} шагов"
+            content=f"Выбрана стратегия из {len(strategy)} шагов" + 
+                   (f" (ReWOO план: {len(rewoo_plan.steps)} шагов)" if rewoo_plan else "")
         )
         
         await asyncio.sleep(0.2)
@@ -650,6 +725,50 @@ class GraphArchitectBridge:
                 # Это один инструмент
                 tool_group = [tool_or_edge]
             
+            # Событие начала шага
+            yield MessageChunk(
+                type="step_started",
+                step_id=step_id,
+                metadata={
+                    "name": f"Шаг {step_index + 1}",
+                    "candidates": [t.metadata.tool_name for t in tool_group]
+                }
+            )
+            
+            # Если есть конкуренция (> 1 кандидата), показываем соревнование
+            if len(tool_group) > 1:
+                # Имитируем прогресс выбора (для визуализации)
+                for progress in range(0, 101, 20):
+                    await asyncio.sleep(0.15)
+                    
+                    # Отправляем прогресс для каждого кандидата
+                    for tool in tool_group:
+                        yield MessageChunk(
+                            type="agent_progress",
+                            agent_id=tool.metadata.tool_name,
+                            step_id=step_id,
+                            progress=progress
+                        )
+                    
+                    # Обновляем scores (растут к финалу)
+                    if progress >= 80:
+                        scores = {}
+                        for tool in tool_group:
+                            # Примерный score на основе репутации
+                            score = tool.metadata.reputation * (0.9 + progress / 1000)
+                            scores[tool.metadata.tool_name] = min(score, 0.99)
+                        
+                        yield MessageChunk(
+                            type="agent_score_updated",
+                            step_id=step_id,
+                            metadata={
+                                "agents": [
+                                    {"agentId": name, "score": score}
+                                    for name, score in scores.items()
+                                ]
+                            }
+                        )
+            
             # Шаг начался
             candidate_ids = [
                 t.agent_id if isinstance(t, AgentTool) else t.metadata.tool_name
@@ -666,7 +785,44 @@ class GraphArchitectBridge:
                 }
             )
             
-            await asyncio.sleep(0.2)
+            # ДОБАВЛЕНО: Визуализация соревнования агентов (если > 1 кандидата)
+            if len(tool_group) > 1:
+                # Показываем прогресс "работы" каждого кандидата
+                for progress in range(0, 101, 25):
+                    await asyncio.sleep(0.2)
+                    
+                    for tool in tool_group:
+                        agent_id = tool.agent_id if isinstance(tool, AgentTool) else tool.metadata.tool_name
+                        
+                        yield MessageChunk(
+                            type="agent_progress",
+                            agent_id=agent_id,
+                            step_id=step_id,
+                            progress=progress
+                        )
+                    
+                    # Обновляем scores на каждом этапе (растут к концу)
+                    if progress >= 50:
+                        scores = {}
+                        for tool in tool_group:
+                            # Симулируем рост score
+                            base_score = tool.metadata.reputation
+                            current_score = base_score * (0.85 + progress / 500)
+                            scores[tool] = min(current_score, 0.99)
+                        
+                        yield MessageChunk(
+                            type="agent_score_updated",
+                            step_id=step_id,
+                            metadata={
+                                "agents": [
+                                    {
+                                        "agentId": t.agent_id if isinstance(t, AgentTool) else t.metadata.tool_name,
+                                        "score": round(scores[t], 3)
+                                    }
+                                    for t in tool_group
+                                ]
+                            }
+                        )
             
             # Выбор инструмента через РЕАЛЬНЫЙ softmax!
             selection_result = await self.select_tool_from_group(
@@ -681,7 +837,7 @@ class GraphArchitectBridge:
             
             selected_tool = selection_result.selected_tool
             
-            # Отправляем scores всех кандидатов
+            # Финальные scores с реальными вероятностями от softmax
             yield MessageChunk(
                 type="agent_score_updated",
                 step_id=step_id,

@@ -315,6 +315,34 @@ class Database:
             Agent(id="agent-web-scraper", name="Web Scraper", type="code_analysis", icon="D1", color="#6366f1",
                   specialization="Web data extraction", capabilities=["scraping", "data_extraction"], cost=0.010,
                   metrics={"avgResponseTime": 2000, "avgScore": 0.83}),
+            
+            # Промежуточные инструменты (для многошаговых цепочек)
+            Agent(id="agent-analyzer", name="Text Analyzer", type="analysis", icon="A1", color="#8b5cf6",
+                  specialization="Analyzing text content", capabilities=["analysis"], cost=0.012,
+                  metrics={"avgResponseTime": 2000, "avgScore": 0.88}),
+            Agent(id="agent-categorizer", name="Categorizer", type="classification", icon="C5", color="#14b8a6",
+                  specialization="Categorizing content", capabilities=["categorization"], cost=0.010,
+                  metrics={"avgResponseTime": 1800, "avgScore": 0.86}),
+            
+            # Множество QA агентов (для конкуренции)
+            Agent(id="agent-universal-processor", name="Universal Processor", type="universal", icon="U1", color="#9333ea",
+                  specialization="Universal text processing", capabilities=["any"], cost=0.015,
+                  metrics={"avgResponseTime": 2500, "avgScore": 0.80}),
+            Agent(id="agent-general-qa", name="General QA", type="qa", icon="Q4", color="#06b6d4",
+                  specialization="General question answering", capabilities=["qa"], cost=0.020,
+                  metrics={"avgResponseTime": 3000, "avgScore": 0.85}),
+            Agent(id="agent-fast-qa", name="Fast QA 2", type="qa", icon="Q5", color="#10b981",
+                  specialization="Fast question answering", capabilities=["speed"], cost=0.008,
+                  metrics={"avgResponseTime": 1500, "avgScore": 0.76}),
+            Agent(id="agent-accurate-qa", name="Accurate QA", type="qa", icon="Q6", color="#ef4444",
+                  specialization="High accuracy QA", capabilities=["accuracy"], cost=0.030,
+                  metrics={"avgResponseTime": 4000, "avgScore": 0.92}),
+            Agent(id="agent-balanced-processor", name="Balanced Processor", type="universal", icon="U2", color="#f59e0b",
+                  specialization="Balanced processing", capabilities=["balance"], cost=0.018,
+                  metrics={"avgResponseTime": 2800, "avgScore": 0.83}),
+            Agent(id="agent-smart-qa", name="Smart QA", type="qa", icon="Q7", color="#ec4899",
+                  specialization="Smart question answering", capabilities=["smart"], cost=0.025,
+                  metrics={"avgResponseTime": 3500, "avgScore": 0.89}),
         ]
     
     def clear_all_data(self):
