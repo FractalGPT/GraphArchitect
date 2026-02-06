@@ -54,7 +54,7 @@
 ### Шаг 1: Запуск сервера
 
 ```bash
-cd C:\Users\ZZZ\Documents\GitHub\GraphArchitect\src\GraphArchitectLib\Web
+cd .\src\GraphArchitectLib\Web
 python main.py
 ```
 

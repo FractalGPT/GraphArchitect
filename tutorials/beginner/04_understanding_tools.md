@@ -2,7 +2,7 @@
 
 **Уровень**: Начинающий  
 **Время**: 20 минут  
-**Цель**: Понять как устроены инструменты в GraphArchitect
+**Цель**: Понять как устроены инструменты
 
 ---
 
@@ -213,7 +213,7 @@ VALUES ('agent-new', 'My Tool', 'custom', 0.5, ...);
 
 Начальная репутация: 0.5 (средняя неопределенность)
 
-### 2. Первые использования
+### 2. Начало использования
 
 ```
 Выполнение 1:
@@ -253,7 +253,34 @@ Variance: 0.2 → 0.05 (меньше неопределенности)
 ```bash
 # Все инструменты
 curl http://localhost:8000/api/agents-library
+```
 
+Ожидаемый вывод:
+```json
+{
+  "agents": [
+    {
+      "id": "agent-accurate-qa",
+      "name": "Accurate QA",
+      "icon": "Q6",
+      "color": "#ef4444",
+      "type": "qa",
+      "specialization": "High accuracy QA",
+      "capabilities": [
+        "accuracy"
+      ],
+      "metrics": {
+        "avgResponseTime": 4000,
+        "avgScore": 0.92
+      }
+    }
+  ],
+  ...
+}
+```
+
+Попробуйте самостоятельно:
+```bash
 # Метрики конкретного
 curl http://localhost:8000/api/training/tools/agent-classifier-gpt4
 ```
