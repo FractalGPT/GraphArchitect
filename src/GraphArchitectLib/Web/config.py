@@ -1,7 +1,7 @@
-"""
-Configuration module for GraphArchitect Web API.
-Centralizes all configuration values.
-"""
+#"""
+#Configuration module for GraphArchitect Web API.
+#Centralizes all configuration values.
+#"""
 import os
 from pathlib import Path
 
@@ -71,3 +71,100 @@ LOG_FORMAT = "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
 # Ensure directories exist
 UPLOAD_DIR.mkdir(exist_ok=True)
 DATA_DIR.mkdir(exist_ok=True)
+
+#
+#"""
+#Configuration module for GraphArchitect Web API.
+#Centralizes all configuration values.
+#"""
+#from pathlib import Path
+#from typing import List, Optional
+#
+#from pydantic import Field
+#from pydantic_settings import BaseSettings, SettingsConfigDict
+#
+## ---------------------------------------------------------------------
+## Paths (НЕ env, реальные константы)
+## ---------------------------------------------------------------------
+#
+#BASE_DIR = Path(__file__).parent
+#PROJECT_ROOT = BASE_DIR.parent
+#UPLOAD_DIR = BASE_DIR / "uploads"
+#DATA_DIR = BASE_DIR / "data"
+#
+#UPLOAD_DIR.mkdir(exist_ok=True)
+#DATA_DIR.mkdir(exist_ok=True)
+#
+## ---------------------------------------------------------------------
+## Pydantic Settings
+## ---------------------------------------------------------------------
+#
+#class _Settings(BaseSettings):
+#    model_config = SettingsConfigDict(
+#        env_file=None,            # .env грузится СНАРУЖИ
+#        case_sensitive=False,
+#        extra="ignore",
+#    )
+#
+#    # ------------------ Database ------------------
+#    DATABASE_PATH: str = str(BASE_DIR / "grapharchitect.db")
+#
+#    # ------------------ Server ------------------
+#    HOST: str = "0.0.0.0"
+#    PORT_START: int = 8000
+#    PORT_END: int = 8010
+#
+#    # ------------------ API ------------------
+#    API_VERSION: str = "3.0.0"
+#    API_PREFIX: str = "/api"
+#
+#    # ------------------ CORS ------------------
+#    CORS_ORIGINS: List[str] = Field(default_factory=lambda: ["*"])
+#
+#    # ------------------ Embedding ------------------
+#    EMBEDDING_DIMENSION: int = 384
+#    EMBEDDING_TYPE: str = "simple"  # simple, infinity
+#
+#    INFINITY_BASE_URL: str = "http://localhost:7997"
+#    INFINITY_API_KEY: Optional[str] = None
+#    INFINITY_MODEL: str = "BAAI/bge-small-en-v1.5"
+#    INFINITY_TIMEOUT: int = 10
+#
+#    # ------------------ k-NN Retriever ------------------
+#    KNN_TYPE: str = "naive"  # naive, faiss
+#    FAISS_INDEX_TYPE: str = "FlatIP"  # FlatIP, FlatL2, HNSW
+#    KNN_VECTOR_WEIGHT: float = 0.7
+#    KNN_TEXT_WEIGHT: float = 0.3
+#
+#    # ------------------ Training ------------------
+#    LEARNING_RATE: float = 0.01
+#    TEMPERATURE_CONSTANT: float = 1.0
+#
+#    # ------------------ NLI ------------------
+#    NLI_K_EXAMPLES: int = 3
+#    NLI_TYPE: str = "llm"  # knn, qwen, llm
+#    NLI_LLM_BACKEND: str = "openrouter"
+#    NLI_LLM_MODEL: str = "openai/gpt-3.5-turbo"
+#    QWEN_MODEL_PATH: Optional[str] = None
+#
+#    # ------------------ ReWOO ------------------
+#    USE_REWOO: bool = False
+#    REWOO_MODEL: str = "google/gemini-1.5-flash"
+#    GEMINI_API_KEY: Optional[str] = None
+#
+#    # ------------------ API Keys ------------------
+#    OPENROUTER_API_KEY: Optional[str] = None
+#    OPENAI_API_KEY: Optional[str] = None
+#
+#    # ------------------ Logging ------------------
+#    LOG_LEVEL: str = "INFO"
+#    LOG_FORMAT: str = "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+#
+#_settings = _Settings()
+#
+## Позволяет писать config.TEMPERATURE_CONSTANT. Не изменять прочий код.
+#def __getattr__(name: str):
+#    try:
+#        return getattr(_settings, name)
+#    except AttributeError:
+#        raise AttributeError(f"Config has no attribute '{name}'")

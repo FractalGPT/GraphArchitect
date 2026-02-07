@@ -122,7 +122,7 @@ docker run -d \
   --name grapharchitect-infinity \
   -p 7997:7997 \
   michaelf34/infinity:latest \
-  --model-name BAAI/bge-m3 \
+  --served-model-name BAAI/bge-m3 \
   --batch-size 32 \
   --device cpu
 
@@ -132,7 +132,7 @@ docker run -d \
   --name grapharchitect-infinity \
   -p 7997:7997 \
   michaelf34/infinity:latest \
-  --model-name BAAI/bge-m3 \
+  --served-model-name BAAI/bge-m3 \
   --batch-size 128 \
   --device cuda
 ```
@@ -140,9 +140,9 @@ docker run -d \
 ### Проверка
 
 ```bash
-curl -X POST http://localhost:7997/embed \
+curl -X POST http://localhost:7997/embeddings \
   -H "Content-Type: application/json" \
-  -d '{"text": "тестовый текст"}'
+  -d '{"input": "тестовый текст"}'
 ```
 
 ### Конфигурация в GraphArchitect
@@ -300,6 +300,7 @@ KNN_TYPE=faiss
 FAISS_INDEX_TYPE=FlatIP
 ```
 
+МНОГО ВОПРОСОВ.
 ### Кеширование эмбеддингов
 
 Сейчас эмбеддинги вычисляются каждый раз. Для оптимизации:

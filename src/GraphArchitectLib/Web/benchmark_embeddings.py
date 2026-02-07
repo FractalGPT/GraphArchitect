@@ -6,12 +6,25 @@
 - Скорость генерации эмбеддингов
 - Точность NLI парсинга
 """
-
 import sys
 from pathlib import Path
 import time
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
+
+import config
+config.EMBEDDING_TYPE = "infinity"
+
+try:
+    import faiss
+    import numpy as np
+    print(f"  [OK] Faiss version: {faiss.__version__}")
+    print(f"  [OK] NumPy version: {np.__version__}")
+    FAISS_OK = True
+except ImportError as e:
+    print(f"  [FAIL] Faiss не установлен: {e}")
+    print(f"  Установите: pip install faiss-cpu numpy")
+    FAISS_OK = False
 
 print("=" * 70)
 print("БЕНЧМАРК: SimpleEmbedding vs InfinityEmbedding")
@@ -33,9 +46,9 @@ except ImportError as e:
     sys.exit(1)
 
 # Проверка Infinity
+#from GraphArchitectLib.Web import config
 try:
     from grapharchitect.services.embedding.infinity_embedding_service import InfinityEmbeddingService
-    import config
     
     if config.EMBEDDING_TYPE == "infinity" and config.INFINITY_BASE_URL:
         infinity_service = InfinityEmbeddingService(

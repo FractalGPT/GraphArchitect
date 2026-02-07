@@ -20,7 +20,7 @@ class InfinityEmbedder:
         """
         self.base_url = base_url.rstrip('/')
         self.api_key = api_key
-        self.endpoint = f"{self.base_url}/embed"  # Пример эндпоинта
+        self.endpoint = f"{self.base_url}/embeddings"  # Пример эндпоинта
         self.headers = {"Content-Type": "application/json"}
         if self.api_key:
             self.headers["Authorization"] = f"Bearer {self.api_key}"
@@ -37,7 +37,7 @@ class InfinityEmbedder:
             Dict[str, Any]: Словарь с данными эмбеддинга или сообщение об ошибке.
         """
         payload: Dict[str, Any] = {
-            "text": text,
+            "input": text,
         }
         try:
             response = requests.post(self.endpoint, headers=self.headers, json=payload, timeout=timeout)
