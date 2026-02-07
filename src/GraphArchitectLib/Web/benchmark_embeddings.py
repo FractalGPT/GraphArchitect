@@ -46,7 +46,6 @@ except ImportError as e:
     sys.exit(1)
 
 # Проверка Infinity
-#from GraphArchitectLib.Web import config
 try:
     from grapharchitect.services.embedding.infinity_embedding_service import InfinityEmbeddingService
     
@@ -55,7 +54,7 @@ try:
             base_url=config.INFINITY_BASE_URL,
             api_key=config.INFINITY_API_KEY,
             dimension=config.EMBEDDING_DIMENSION,
-            model_name=config.INFINITY_MODEL,
+            model_name="FractalGPT/SbertDistilV2", # config.INFINITY_MODEL
             timeout=config.INFINITY_TIMEOUT,
             fallback_to_simple=False
         )
