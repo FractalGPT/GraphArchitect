@@ -4,14 +4,15 @@ echo GraphArchitect + LangChain Integration - Examples
 echo ======================================================================
 echo.
 
-set PYTHON=C:\Users\ZZZ\AppData\Local\Programs\Python\Python310\python.exe
-
-if not exist "%PYTHON%" (
-    echo [ERROR] Python not found: %PYTHON%
-    echo Update path in this script.
+where python >nul 2>nul
+if errorlevel 1 (
+    echo [ERROR] Python not found in PATH
+    echo Install Python or add it to PATH
     pause
     exit /b 1
 )
+
+set PYTHON=python
 
 echo Select example to run:
 echo.

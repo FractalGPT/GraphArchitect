@@ -6,7 +6,7 @@
 
 import sys
 from pathlib import Path
-from typing import Optional, Any
+from typing import Dict, Optional, Any
 import logging
 
 # Добавляем путь к GraphArchitect

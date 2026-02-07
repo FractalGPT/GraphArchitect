@@ -152,8 +152,8 @@ def example_4_get_tool_metrics():
     
     result = response.json()
     
-    if result['success']:
-        tools = result['data']['tools']
+    if 'tools' in result:
+        tools = result['tools']
         
         print(f"\nTool metrics (Top 5 by reputation):")
         
@@ -235,6 +235,7 @@ def example_6_get_specific_tool_metrics():
     
     if response.status_code == 200:
         result = response.json()
+        print(result)
         
         if result['success']:
             tool = result['data']
@@ -265,30 +266,30 @@ def main():
     print("\n" + "="*70)
     
     try:
-        # Example 1: Health check
-        grapharchitect_enabled = example_1_health_check()
+        ## Example 1: Health check
+        #grapharchitect_enabled = example_1_health_check()
         
-        if not grapharchitect_enabled:
-            print("\n[WARNING] GraphArchitect is in simulation mode")
-            print("Real algorithms are not active.")
-            print("\nTo enable:")
-            print("  1. Ensure grapharchitect library is in PYTHONPATH")
-            print("  2. Restart server")
-            return
+        #if not grapharchitect_enabled:
+        #    print("\n[WARNING] GraphArchitect is in simulation mode")
+        #    print("Real algorithms are not active.")
+        #    print("\nTo enable:")
+        #    print("  1. Ensure grapharchitect library is in PYTHONPATH")
+        #    print("  2. Restart server")
+        #    return
         
-        # Example 2: Streaming with algorithms
-        example_2_streaming_with_real_algorithms()
+        ## Example 2: Streaming with algorithms
+        #example_2_streaming_with_real_algorithms()
         
-        # Example 3: Training feedback
-        example_3_training_feedback()
+        ## Example 3: Training feedback
+        ##example_3_training_feedback()
         
-        # Example 4: Get all tool metrics
-        example_4_get_tool_metrics()
+        ## Example 4: Get all tool metrics
+        #example_4_get_tool_metrics()
         
-        # Example 5: Compare algorithms
-        example_5_compare_algorithms()
+        ## Example 5: Compare algorithms
+        #example_5_compare_algorithms()
         
-        # Example 6: Specific tool metrics
+        ## Example 6: Specific tool metrics
         example_6_get_specific_tool_metrics()
         
         # Summary

@@ -19,14 +19,14 @@
 
 - Python 3.8+ установлен
 - Базовое понимание командной строки
-- 5 минут свободного времени
+- 5 минут
 
 ---
 
 ## Шаг 1: Установка зависимостей
 
 ```bash
-cd C:\Users\ZZZ\Documents\GitHub\GraphArchitect\src\GraphArchitectLib\Web
+cd .\src\GraphArchitectLib\Web
 
 # Установить зависимости
 pip install -r requirements.txt
@@ -50,7 +50,7 @@ python db_manager.py load_agents
 
 **Что происходит**: 
 - Создается SQLite база данных `grapharchitect.db`
-- Загружается 19 инструментов (agents) в таблицу
+- Загружается 27инструментов (agents) в таблицу
 
 **Ожидаемый вывод**:
 ```
@@ -60,9 +60,14 @@ DATABASE INITIALIZATION
 [OK] Database initialized: grapharchitect.db
 
 Tables:
-  [OK] agents              (19 records)
-  [OK] chats               (0 records)
-  [OK] workflows           (0 records)
+  [OK] agents               (27 records)
+  [OK] chats                (0 records)
+  [OK] documents            (0 records)
+  [OK] executions           (0 records)
+  [OK] feedbacks            (0 records)
+  [OK] sqlite_sequence      (0 records)
+  [OK] tool_metrics         (0 records)
+  [OK] workflows            (0 records)
 ```
 
 ---
@@ -82,7 +87,7 @@ INFO - Database tables created/verified
 INFO - Using SQLite repository
 INFO - GraphArchitect integration activated
 INFO - Initializing GraphArchitectBridge...
-INFO - GraphArchitectBridge ready (19 tools)
+INFO - GraphArchitectBridge ready (27 tools)
 INFO - Starting server on port 8000
 INFO - Web interface: http://127.0.0.1:8000
 ```
@@ -100,8 +105,8 @@ http://localhost:8000
 
 **Что вы увидите**:
 - Интерфейс чата
-- Библиотека инструментов справа
-- Выбор алгоритма планирования вверху
+- Библиотека инструментов справа, в панели
+- Выбор алгоритма планирования справа вверху
 
 ---
 
@@ -158,9 +163,6 @@ http://localhost:8000
 ```bash
 # Health check
 curl http://localhost:8000/api/health
-
-# Список инструментов
-curl http://localhost:8000/api/agents-library
 ```
 
 **Ожидаемый вывод**:
@@ -181,23 +183,11 @@ curl http://localhost:8000/api/agents-library
 }
 ```
 
----
-
-## Что дальше?
-
-### Вы успешно
-
-- Установили GraphArchitect
-- Инициализировали базу данных
-- Запустили сервер
-- Выполнили первую задачу
-- Проверили API
-
-### Следующие шаги
-
-1. **Изучите основные концепции**: [02_basic_concepts.md](02_basic_concepts.md)
-2. **Создайте свой workflow**: [03_first_workflow.md](03_first_workflow.md)
-3. **Поймите инструменты**: [04_understanding_tools.md](04_understanding_tools.md)
+Попробуйте самостоятельно:
+```bash
+# Список инструментов
+curl http://localhost:8000/api/agents-library
+```
 
 ---
 
@@ -227,13 +217,13 @@ python main.py
 
 ## Итоги
 
-### Вы научились
+### Вы успешно
 
-- Устанавливать GraphArchitect
-- Инициализировать базу данных
-- Запускать Web сервер
-- Отправлять запросы
-- Понимать базовый вывод
+- Установили GraphArchitect
+- Инициализировали базу данных
+- Запустили сервер
+- Выполнили первую задачу
+- Проверили API
 
 ### Ключевые моменты
 
@@ -241,6 +231,12 @@ python main.py
 - Каждый запрос проходит через NLI → Поиск → Выбор → Выполнение
 - Система обучается на каждом выполнении
 - Все данные сохраняются в SQLite
+
+### Следующие шаги
+
+1. **Изучите основные концепции**: [02_basic_concepts.md](02_basic_concepts.md)
+2. **Создайте свой workflow**: [03_first_workflow.md](03_first_workflow.md)
+3. **Поймите инструменты**: [04_understanding_tools.md](04_understanding_tools.md)
 
 ---
 

@@ -17,6 +17,9 @@ from typing import List, Optional
 from pathlib import Path
 import aiofiles
 
+from dotenv import load_dotenv
+load_dotenv()
+
 from api_router import api_router
 from models import MessageRequest
 from services import ChatService

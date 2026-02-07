@@ -256,7 +256,7 @@
 ### Начните изучение
 
 ```bash
-cd C:\Users\ZZZ\Documents\GitHub\GraphArchitect\tutorials
+cd .\tutorials
 ```
 
 Откройте:

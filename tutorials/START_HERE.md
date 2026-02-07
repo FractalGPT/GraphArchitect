@@ -21,7 +21,7 @@
 ### 1. Инициализация
 
 ```bash
-cd C:\Users\ZZZ\Documents\GitHub\GraphArchitect\src\GraphArchitectLib\Web
+cd .\src\GraphArchitectLib\Web
 python db_manager.py init
 python db_manager.py load_agents
 ```
