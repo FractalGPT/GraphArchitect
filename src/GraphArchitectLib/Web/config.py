@@ -31,7 +31,9 @@ GRAPHARCHITECT_PATH = str(PROJECT_ROOT)
 
 # Embedding
 EMBEDDING_DIMENSION = int(os.getenv("EMBEDDING_DIMENSION", "384"))
-EMBEDDING_TYPE = os.getenv("EMBEDDING_TYPE", "simple")  # simple, infinity
+# Автоматический выбор: infinity если есть INFINITY_BASE_URL, иначе simple
+_default_embedding = "infinity" if os.getenv("INFINITY_BASE_URL") else "simple"
+EMBEDDING_TYPE = os.getenv("EMBEDDING_TYPE", _default_embedding)
 INFINITY_BASE_URL = os.getenv("INFINITY_BASE_URL", "http://localhost:7997")
 INFINITY_API_KEY = os.getenv("INFINITY_API_KEY")
 INFINITY_MODEL = os.getenv("INFINITY_MODEL", "BAAI/bge-small-en-v1.5")
