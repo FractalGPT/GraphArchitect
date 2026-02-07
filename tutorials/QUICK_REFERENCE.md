@@ -248,8 +248,8 @@ pip install faiss-cpu numpy
 
 ### Продвинутое
 
-- [Embedding Systems](advanced/01_embedding_systems.md)
-- [Production Deployment](advanced/03_production_deployment.md)
+- [Embedding Systems](deployment/01_embedding_systems.md)
+- [Production Deployment](deployment/02_production_deployment.md)
 
 ---
 

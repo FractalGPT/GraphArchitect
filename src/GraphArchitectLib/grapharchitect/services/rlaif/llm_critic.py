@@ -112,7 +112,7 @@ class LLMCritic:
             ImportError: Если не удается загрузить OpenRouterLLM
         """
         try:
-            from tools.ApiTools.OpenRouterTool.openrouter_llm import OpenRouterLLM
+            from ...tools.ApiTools.OpenRouterTool.openrouter_llm import OpenRouterLLM
             
             self._llm = OpenRouterLLM(
                 api_key=api_key,
@@ -143,7 +143,7 @@ class LLMCritic:
             vllm_host = os.getenv("VLLM_HOST", "http://localhost:8000")
         
         try:
-            from tools.ApiTools.VLLMTool.VLLMApi import VLLMApi
+            from ...tools.ApiTools.VLLMTool.VLLMApi import VLLMApi
             
             self._llm = VLLMApi(
                 vllm_host=vllm_host,

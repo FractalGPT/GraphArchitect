@@ -12,7 +12,7 @@ class VLLMApi:
     Клиент для взаимодействия с VLLM API для работы с языковыми моделями.
     """
 
-    def __init__(self, vllm_host: str, model_name: str, prompt: str) -> None:
+    def __init__(self, vllm_host: str, model_name: str, system_prompt: str) -> None:
         """
         Инициализация клиента VLLMApi.
 
@@ -23,7 +23,7 @@ class VLLMApi:
         """
         self.vllm_host = vllm_host
         self.model_name = model_name
-        self.prompt = prompt
+        self.prompt = system_prompt
         self.headers = {"Content-Type": "application/json"}
 
     def query_llm(

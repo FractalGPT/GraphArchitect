@@ -23,7 +23,7 @@
 → [Data Analysis](workflows/data_analysis.md)
 
 **...улучшить качество**
-→ [Системы эмбеддингов](advanced/01_embedding_systems.md)
+→ [Системы эмбеддингов](deployment/01_embedding_systems.md)
 
 **...понять математику**
 → [Выбор инструментов](intermediate/02_tool_selection.md)
@@ -76,27 +76,29 @@
    - Создание своих инструментов
    - [intermediate/05_custom_tools.md](intermediate/05_custom_tools.md)
 
-### Advanced (5 туториалов, 200 минут)
+### Advanced (3 туториала, 105 минут)
+
+1. **Custom Algorithms** (40 мин)
+   - Собственные алгоритмы поиска
+   - [advanced/01_custom_algorithms.md](advanced/01_custom_algorithms.md)
+
+2. **Performance Tuning** (35 мин)
+   - Оптимизация скорости и стоимости
+   - [advanced/02_performance_tuning.md](advanced/02_performance_tuning.md)
+
+3. **Extending System** (30 мин)
+   - Расширение возможностей
+   - [advanced/03_extending_system.md](advanced/03_extending_system.md)
+
+### Deployment (2 туториала, 95 минут)
 
 1. **Embedding Systems** (45 мин)
    - Simple, Infinity, Faiss
-   - [advanced/01_embedding_systems.md](advanced/01_embedding_systems.md)
+   - [advanced/01_embedding_systems.md](deployment/01_embedding_systems.md)
 
-2. **Custom Algorithms** (40 мин)
-   - Собственные алгоритмы поиска
-   - [advanced/02_custom_algorithms.md](advanced/02_custom_algorithms.md)
-
-3. **Production Deployment** (50 мин)
-   - Docker, мониторинг, масштабирование
-   - [advanced/03_production_deployment.md](advanced/03_production_deployment.md)
-
-4. **Performance Tuning** (35 мин)
-   - Оптимизация скорости и стоимости
-   - [advanced/04_performance_tuning.md](advanced/04_performance_tuning.md)
-
-5. **Extending System** (30 мин)
-   - Расширение возможностей
-   - [advanced/05_extending_system.md](advanced/05_extending_system.md)
+2. **Production Deployment** (50 мин)
+   - Docker, масштабирование
+   - [deployment/02_production_deployment.md](deployment/02_production_deployment.md)
 
 ### Workflows (6 готовых сценариев, 150 минут)
 
@@ -175,13 +177,15 @@
 
 1. [Custom Tools](intermediate/05_custom_tools.md) - Свои инструменты
 2. [NLI Parsing](intermediate/03_nli_parsing.md) - Расширение NLI
-3. [Extending System](advanced/05_extending_system.md) - Кастомизация
+3. [Extending System](advanced/03_extending_system.md) - Кастомизация
 
 ### Хочу оптимизировать
 
-1. [Embedding Systems](advanced/01_embedding_systems.md) - Качество
-2. [Performance Tuning](advanced/04_performance_tuning.md) - Скорость
-3. [Production Deployment](advanced/03_production_deployment.md) - Масштабирование
+1. [Performance Tuning](advanced/02_performance_tuning.md) - Скорость
+
+### Хочу создать инфраструктуру
+1. [Embedding Systems](deployment/01_embedding_systems.md) - Качество
+2. [Production Deployment](deployment/02_production_deployment.md) - Масштабирование
 
 ---
 
@@ -227,11 +231,11 @@
 
 **Q**: Почему низкая точность NLI?
 
-**A**: Используйте Infinity embeddings - [Embedding Systems](advanced/01_embedding_systems.md)
+**A**: Используйте Infinity embeddings - [Embedding Systems](deployment/01_embedding_systems.md)
 
 **Q**: Как ускорить для большого датасета?
 
-**A**: Используйте Faiss - [Embedding Systems](advanced/01_embedding_systems.md)
+**A**: Используйте Faiss - [Embedding Systems](deployment/01_embedding_systems.md)
 
 ---
 

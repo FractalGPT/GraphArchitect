@@ -30,11 +30,16 @@
 
 Для глубокой кастомизации и оптимизации.
 
+- **01_custom_algorithms.md** - Собственные алгоритмы поиска
+- **02_performance_tuning.md** - Оптимизация производительности
+- **03_extending_system.md** - Расширение системы
+
+### Уровень развертывания (Deployment)
+
+Для создания инфраструктуры.
+
 - **01_embedding_systems.md** - Системы эмбеддингов (Simple, Infinity, Faiss)
-- **02_custom_algorithms.md** - Собственные алгоритмы поиска
-- **03_production_deployment.md** - Production развертывание
-- **04_performance_tuning.md** - Оптимизация производительности
-- **05_extending_system.md** - Расширение системы
+- **02_production_deployment.md** - Production развертывание
 
 ### Типовые Workflow задачи (Workflows)
 
@@ -72,8 +77,8 @@
 ### Хочу настроить под себя
 
 1. [Создание инструментов](intermediate/05_custom_tools.md)
-2. [Системы эмбеддингов](advanced/01_embedding_systems.md)
-3. [Расширение системы](advanced/05_extending_system.md)
+2. [Системы эмбеддингов](deployment/01_embedding_systems.md)
+3. [Расширение системы](advanced/03_extending_system.md)
 
 ---
 

@@ -38,12 +38,14 @@ tutorials/
 │   ├── 04_training_system.md   # 30 мин
 │   └── 05_custom_tools.md      # 30 мин
 │
-├── advanced/                    # Продвинутый (200 мин)
+├── advanced/                    # Продвинутый (105 мин)
+│   ├── 01_custom_algorithms.md # 40 мин
+│   ├── 02_performance_tuning.md     # 35 мин
+│   └── 03_extending_system.md  # 30 мин
+│
+├── deployment/                    # Развертывание (95 мин)
 │   ├── 01_embedding_systems.md # 45 мин
-│   ├── 02_custom_algorithms.md # 40 мин
-│   ├── 03_production_deployment.md  # 50 мин
-│   ├── 04_performance_tuning.md     # 35 мин
-│   └── 05_extending_system.md  # 30 мин
+│   └── 02_production_deployment.md  # 50 мин
 │
 └── workflows/                   # Готовые сценарии (150 мин)
     ├── customer_support.md     # 30 мин
@@ -306,11 +308,11 @@ set PYTHONPATH=C:\...\GraphArchitectLib;%PYTHONPATH%
 
 **Q**: Низкая точность NLI
 
-**A**: Используйте Infinity embeddings - см. [advanced/01_embedding_systems.md](advanced/01_embedding_systems.md)
+**A**: Используйте Infinity embeddings - см. [deployment/01_embedding_systems.md](deployment/01_embedding_systems.md)
 
 **Q**: Медленно работает
 
-**A**: См. [advanced/04_performance_tuning.md](advanced/04_performance_tuning.md)
+**A**: См. [advanced/02_performance_tuning.md](advanced/02_performance_tuning.md)
 
 ---
 

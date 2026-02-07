@@ -136,9 +136,10 @@ def test_grapharchitect_adaptivity(tasks, iterations=3):
                 from grapharchitect.services.feedback.feedback_data import FeedbackData, FeedbackSource
                 import uuid
                 
+                
                 feedback = FeedbackData(
                     task_id=uuid.uuid4(),
-                    source=FeedbackSource.AI_CRITIC,
+                    source=FeedbackSource.AUTO_CRITIC,
                     quality_score=0.75 + (iteration * 0.05),  # Улучшается
                     success=True
                 )

@@ -78,9 +78,9 @@ python main.py
 ### Нужен production deployment
 
 **Изучите**:
-1. [Системы эмбеддингов](advanced/01_embedding_systems.md) - 45 мин
-2. [Production Deployment](advanced/03_production_deployment.md) - 50 мин
-3. [Performance Tuning](advanced/04_performance_tuning.md) - 35 мин
+1. [Системы эмбеддингов](deployment/01_embedding_systems.md) - 45 мин
+2. [Production Deployment](deployment/02_production_deployment.md) - 50 мин
+3. [Performance Tuning](advanced/02_performance_tuning.md) - 35 мин
 
 **Время**: 130 минут  
 **Результат**: Production-ready система

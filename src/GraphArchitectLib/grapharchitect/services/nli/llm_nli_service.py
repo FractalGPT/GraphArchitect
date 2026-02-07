@@ -92,7 +92,7 @@ class LLMNLIService:
             self._llm = VLLMApi(
                 vllm_host=vllm_host,
                 model_name=self._model_name,
-                prompt="You are an expert at parsing task descriptions."
+                system_prompt="You are an expert at parsing task descriptions."
             )
             
             logger.info(f"VLLM backend initialized: {vllm_host}")

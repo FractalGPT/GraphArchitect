@@ -151,8 +151,8 @@ GraphArchitect/
 ### Для production
 
 - [Embedding Systems](tutorials/advanced/01_embedding_systems.md)
-- [Production Deployment](tutorials/advanced/03_production_deployment.md)
-- [Performance Tuning](tutorials/advanced/04_performance_tuning.md)
+- [Production Deployment](tutorials/deployment/02_production_deployment.md)
+- [Performance Tuning](tutorials/advanced/02_performance_tuning.md)
 
 ---
 

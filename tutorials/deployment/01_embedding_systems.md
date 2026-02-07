@@ -345,4 +345,4 @@ def get_embedding(self, text):
 
 ---
 
-**Следующий**: [Production Deployment](03_production_deployment.md)
+**Следующий**: [Production Deployment](02_production_deployment.md)

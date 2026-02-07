@@ -410,7 +410,7 @@ class RLAIFTrainer:
         """
         feedback = FeedbackData(
             task_id=getattr(context, 'task_id', str(uuid.uuid4())),
-            source=FeedbackSource.AI_CRITIC,
+            source=FeedbackSource.AUTO_CRITIC,
             quality_score=score.overall_score,
             comment=score.reasoning,
             detailed_scores={
