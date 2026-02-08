@@ -11,6 +11,7 @@ from ..tool_edge import ToolEdge
 from .execution_context import ExecutionContext
 from .execution_status import ExecutionStatus
 from .execution_step import ExecutionStep
+from ..pathfinding_algorithm import PathfindingAlgorithm
 
 # Используем TYPE_CHECKING для избежания циклических импортов
 from typing import TYPE_CHECKING
@@ -51,7 +52,8 @@ class ExecutionOrchestrator:
         task: TaskDefinition,
         available_tools: List[BaseTool],
         path_limit: int = 1,
-        top_k: int = 5
+        top_k: int = 5,
+        algorithm: Optional[PathfindingAlgorithm] = None
     ) -> ExecutionContext:
         """
         Выполнить задачу: найти стратегию и выполнить цепочку инструментов.
@@ -89,7 +91,8 @@ class ExecutionOrchestrator:
                 available_tools,
                 start_format,
                 end_format,
-                path_limit
+                path_limit,
+                algorithm
             )
             
             if not strategies:
