@@ -1,5 +1,4 @@
 // === Main Chat Application ===
-// Integration with WorkflowVisualizer
 
 // Хранилище для загруженных файлов
 let uploadedFileIds = [];
@@ -26,16 +25,16 @@ document.getElementById('chat-form').addEventListener('submit', function(e) {
     const welcome = document.getElementById('welcome-message');
     if (welcome) welcome.style.display = 'none';
 
-    // Очищаем ввод
+    // Очистка ввода
     messageInput.value = '';
     messageInput.style.height = 'auto';
 
-    // Если подключен WorkflowVisualizer, запускаем его через сообщение чата
+    // Если подключен WorkflowVisualizer,
     if (window.workflowApp) {
         window.workflowApp.startWorkflowFromChat(message, [...uploadedFileIds]);
     }
 
-    // Очищаем файлы после отправки
+    // Очистка файлов
     clearFiles();
 });
 
@@ -48,14 +47,14 @@ document.getElementById('file-input').addEventListener('change', async function(
         await uploadFile(file);
     }
     
-    // Сбрасываем input чтобы можно было выбрать тот же файл снова
+    // Сброс input чтобы можно было выбрать тот же файл снова
     this.value = '';
 });
 
 async function uploadFile(file) {
     const fileDisplay = document.getElementById('file-display');
     
-    // Создаем временный чип с индикатором загрузки
+    // Индикатор загрузки
     const chip = document.createElement('div');
     chip.className = 'file-chip loading';
     chip.innerHTML = `<span>[...]</span> <span>${file.name}</span>`;
@@ -65,7 +64,7 @@ async function uploadFile(file) {
         const formData = new FormData();
         formData.append('file', file);
 
-        // Используем эндпоинт из api_router.py
+        // Эндпоинт из api_router.py
         // Так как chat_id еще может не быть, генерируем временный
         const tempChatId = `chat_${Date.now()}`;
         const response = await fetch(`/api/chat/${tempChatId}/document`, {
@@ -77,7 +76,7 @@ async function uploadFile(file) {
 
         const data = await response.json();
         
-        // Обновляем чип
+        // Обновление
         chip.classList.remove('loading');
         chip.innerHTML = `
             <span>📎</span> 
@@ -87,7 +86,7 @@ async function uploadFile(file) {
         
         uploadedFileIds.push(data.document_id);
 
-        // Добавляем обработчик удаления
+        // Обработчик удаления
         chip.querySelector('.remove-file').onclick = () => {
             uploadedFileIds = uploadedFileIds.filter(id => id !== data.document_id);
             chip.remove();
@@ -95,7 +94,7 @@ async function uploadFile(file) {
 
     } catch (error) {
         console.error('Error uploading file:', error);
-        chip.innerHTML = `<span>❌</span> <span>${file.name} (Ошибка)</span>`;
+        chip.innerHTML = `<span>X</span> <span>${file.name} (Ошибка)</span>`;
         setTimeout(() => chip.remove(), 3000);
     }
 }

@@ -6,9 +6,12 @@ from fastapi import APIRouter, UploadFile, File, Form, HTTPException, status
 from fastapi.responses import StreamingResponse
 from typing import List, Optional
 import json
+import logging
+
+logger = logging.getLogger(__name__)
 
 from models import (
-    MessageRequest, MessageResponse, WorkflowCreateRequest,
+    MessageRequest, MessageResponse, MessageChunk, WorkflowCreateRequest,
     WorkflowCreateResponse, WorkflowChain, DocumentInfo,
     ApiResponse, ErrorResponse, ChatInfo
 )
@@ -101,7 +104,8 @@ async def send_message_stream(
     files: Optional[str] = Form(None),
     planning_algorithm: str = Form("yen_5"),
     use_streaming: bool = Form(True),
-    use_rewoo: bool = Form(False)
+    use_rewoo: bool = Form(False),
+    user_priority: str = Form("balanced")
 ):
     """
     Унифицированный эндпоинт для работы с графом агентов.
@@ -118,7 +122,8 @@ async def send_message_stream(
             files=file_list,
             planning_algorithm=planning_algorithm,
             use_streaming=use_streaming,
-            use_rewoo=use_rewoo
+            use_rewoo=use_rewoo,
+            user_priority=user_priority
         )
         
         if not use_streaming:
@@ -129,7 +134,25 @@ async def send_message_stream(
         async def generate():
             # Теперь сервис возвращает чанки для ВСЕХ этапов
             async for chunk in chat_service.process_full_workflow_stream(request):
-                yield chunk.model_dump_json() + "\n"
+                try:
+                    json_str = chunk.model_dump_json()
+                    
+                    # Проверка размера чанка (для base64-изображений)
+                    if len(json_str) > 10000000:  # 10MB
+                        logger.warning(f"Chunk too large: {len(json_str)} bytes, truncating...")
+                        # Отправляем сообщение об ошибке вместо огромного чанка
+                        error_chunk = MessageChunk(
+                            type="error",
+                            content=f"Результат слишком большой для передачи ({len(json_str)} байт)"
+                        )
+                        yield error_chunk.model_dump_json() + "\n"
+                    else:
+                        yield json_str + "\n"
+                
+                except Exception as e:
+                    logger.error(f"Error serializing chunk: {e}")
+                    error_chunk = MessageChunk(type="error", content=f"Serialization error: {str(e)}")
+                    yield error_chunk.model_dump_json() + "\n"
         
         return StreamingResponse(
             generate(),

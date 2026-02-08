@@ -31,7 +31,7 @@ body {
 /* === Header === */
 .workflow-header {
     background: var(--f-white);
-    padding: 15px 30px;
+    padding: 10px 20px;
     display: flex;
     justify-content: space-between;
     align-items: center;
@@ -77,6 +77,19 @@ body {
     overflow-x: auto;
 }
 
+.step-item {
+    position: relative;
+    display: flex;
+    align-items: center;
+}
+
+.step-arrow {
+    margin: 0 5px;
+    color: #adb5bd;
+    font-size: 20px;
+    font-weight: bold;
+}
+
 .step-card {
     background: var(--f-white);
     border: 2px solid var(--f-border);
@@ -101,6 +114,11 @@ body {
     }
 }
 
+.step-card.pending {
+    border-color: var(--f-border);
+    background: var(--f-white);
+}
+
 .step-card.in-progress {
     border-color: var(--f-blue);
     background: var(--f-blue-light);
@@ -113,6 +131,19 @@ body {
     background: #f2fcf5;
 }
 
+.step-name {
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--f-text);
+    margin-bottom: 5px;
+}
+
+.step-status {
+    font-size: 11px;
+    color: var(--f-text-muted);
+    font-weight: 600;
+}
+
 /* === Main Content Grid === */
 .main-content {
     display: grid;
@@ -123,7 +154,7 @@ body {
     overflow: hidden;
 }
 
-/* === Правая панель - Agent Library (Fractal Style) === */
+/* === Правая панель === */
 .library-sidebar {
     background: var(--f-white);
     border-radius: 16px;
@@ -370,7 +401,7 @@ body {
 
 /* === BOTTOM PANEL (Unified flow) === */
 .workflow-stats {
-    height: 45px; /* Уменьшаем фиксированную высоту */
+    height: 40px; /* Уменьшаем фиксированную высоту */
     background: var(--f-white);
     border-top: 1px solid var(--f-border);
     display: flex;
@@ -404,6 +435,8 @@ body {
     overflow: hidden;
     box-shadow: 0 2px 8px rgba(0,0,0,0.05);
     width: 100%;
+    max-width: 100%;
+    flex-shrink: 0;
 }
 
 .execution-header {
@@ -427,7 +460,7 @@ body {
 
 .execution-content {
     padding: 12px 15px;
-    max-height: 300px;
+    max-height: 500px;
     overflow-y: auto;
     font-family: 'Inter', -apple-system, sans-serif;
     font-size: 12px;

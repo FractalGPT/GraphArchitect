@@ -59,6 +59,7 @@ app.include_router(api_router)
 
 # Static files and templates
 app.mount("/static", StaticFiles(directory="static"), name="static")
+app.mount("/uploads", StaticFiles(directory="uploads"), name="uploads")
 templates = Jinja2Templates(directory="templates")
 
 # Initialize services
@@ -116,6 +117,45 @@ async def home(request: Request):
         "agents": agents_list,
         "templates": templates_list
     })
+
+
+@app.post("/api/set-api-key")
+async def set_api_key(request: Request):
+    """Установить OpenRouter API ключ из Web UI."""
+    try:
+        data = await request.json()
+        key = data.get("key", "").strip()
+        
+        if key and len(key) > 10:
+            os.environ["OPENROUTER_API_KEY"] = key
+            logger.info("OpenRouter API key set from Web UI")
+            
+            # Переинициализируем NLI и ReWOO в bridge
+            try:
+                from grapharchitect_bridge import get_bridge, is_bridge_available, REWOO_AVAILABLE
+                if is_bridge_available():
+                    bridge = get_bridge()
+                    
+                    # NLI: переключаемся на LLM режим
+                    bridge.nli = bridge._create_nli_service()
+                    bridge._load_nli_examples()
+                    logger.info(f"NLI reinitialized: {bridge.nli.__class__.__name__}")
+                    
+                    # ReWOO: создаём планировщик с API ключом
+                    if REWOO_AVAILABLE and not bridge.rewoo_planner:
+                        from grapharchitect.planning.rewoo_planner import ReWOOPlanner
+                        bridge.rewoo_planner = ReWOOPlanner(gemini_api_key=key)
+                        logger.info("ReWOO Planner initialized with API key")
+            except Exception as e:
+                logger.warning(f"Failed to reinitialize services: {e}")
+            
+            return {"status": "ok", "message": "API key set"}
+        else:
+            if "OPENROUTER_API_KEY" in os.environ:
+                del os.environ["OPENROUTER_API_KEY"]
+            return {"status": "cleared", "message": "API key cleared"}
+    except Exception as e:
+        return {"status": "error", "message": str(e)}
 
 
 @app.get("/api/workflow-templates")

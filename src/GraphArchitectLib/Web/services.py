@@ -139,7 +139,10 @@ class ChatService:
                 input_data=request.message,
                 algorithm=request.planning_algorithm,
                 top_k=5,
-                use_rewoo=use_rewoo_flag
+                use_rewoo=use_rewoo_flag,
+                user_priority=getattr(request, 'user_priority', 'balanced'),
+                max_cost=getattr(request, 'max_cost', None),
+                max_time=getattr(request, 'max_time', None)
             ):
                 yield chunk
         
