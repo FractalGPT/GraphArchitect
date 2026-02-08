@@ -121,6 +121,10 @@ class AgentTool(BaseTool):
                 Connector("text", "data"),
                 Connector("text", "report")
             ),
+            "image_generation": (
+                Connector("text", ANY_SEMANTIC),
+                Connector("image", ANY_SEMANTIC)
+            ),
             "image_processing": (
                 Connector("image", "raw"),
                 Connector("text", "description")
@@ -158,87 +162,185 @@ class AgentTool(BaseTool):
         """
         Выполнить агента.
         
-        Использует OpenRouter для реальных LLM вызовов (если API ключ доступен).
-        Fallback на заглушку если OpenRouter не доступен или произошла ошибка.
+        При наличии OPENROUTER_API_KEY: реальный LLM/image вызов.
+        Без ключа: заглушка.
         """
-        # Пробуем использовать OpenRouter
-        try:
-            import os
-            api_key = os.getenv("OPENROUTER_API_KEY")
+        import os
+        api_key = os.getenv("OPENROUTER_API_KEY")
+        
+        if api_key:
+            # Генерация изображений — отдельная ветка
+            if self._agent.type == "image_generation":
+                return self._execute_image_generation(input_data, api_key)
             
-            if api_key:
-                # Импортируем OpenRouter (если доступен)
-                try:
-                    from grapharchitect.tools.ApiTools.OpenRouterTool import OpenRouterTool, OpenRouterConfig
-                    
-                    # Определяем модель на основе agent_id
-                    model_map = {
-                        "gpt4": "gpt-4",
-                        "gpt-4": "gpt-4",
-                        "claude": "claude-3.5-sonnet",
-                        "claude-3": "claude-3-sonnet",
-                        "gemini": "gemini-pro",
-                        "llama": "llama-3-70b",
-                        "mistral": "mistral-large",
-                        "deepseek": "deepseek-chat"
-                    }
-                    
-                    # Подбираем модель
-                    model_key = "gpt-3.5-turbo"  # По умолчанию
-                    
-                    for key, value in model_map.items():
-                        if key in self._agent_id.lower():
-                            model_key = value
-                            break
-                    
-                    # Получаем ID модели для OpenRouter
-                    model_id = OpenRouterConfig.get_model_id(model_key)
-                    
-                    # Создаем OpenRouter инструмент
-                    openrouter_tool = OpenRouterTool(
-                        api_key=api_key,
-                        model_name=model_id,
-                        system_prompt=self.metadata.description or "You are a helpful AI assistant."
-                    )
-                    
-                    # РЕАЛЬНЫЙ вызов LLM с таймаутом!
-                    import signal
-                    
-                    def timeout_handler(signum, frame):
-                        raise TimeoutError("OpenRouter вызов превысил таймаут")
-                    
-                    try:
-                        # Устанавливаем таймаут 10 секунд
-                        # signal.signal(signal.SIGALRM, timeout_handler)
-                        # signal.alarm(10)
-                        
-                        result = openrouter_tool.execute(str(input_data))
-                        
-                        # signal.alarm(0)  # Отключаем таймаут
-                        
-                        logger.info(f"OpenRouter executed: {self.metadata.tool_name} ({model_id})")
-                        return result
-                    
-                    except (TimeoutError, ConnectionError, OSError) as net_err:
-                        logger.warning(f"OpenRouter network error: {net_err}")
-                        # Fallback to stub
+            try:
+                from grapharchitect.tools.ApiTools.OpenRouterTool.openrouter_llm import OpenRouterLLM
                 
-                except ImportError as e:
-                    logger.debug(f"OpenRouter not available: {e}")
-                    pass  # Fallback
+                # Системный промпт: роль инструмента
+                system_prompts = {
+                    "classification": "Ты классификатор текста. Определи категорию/тональность сообщения. Отвечай кратко на русском.",
+                    "content_generation": "Ты генератор контента. Создай текст по запросу пользователя. Отвечай на русском.",
+                    "quality_assurance": "Ты контролер качества. Проверь текст и укажи замечания. Отвечай на русском.",
+                    "research": "Ты исследователь. Дай подробный ответ по теме. Отвечай на русском.",
+                    "qa": "Ты помощник. Ответь на вопрос пользователя точно и полезно. Отвечай на русском.",
+                    "universal": "Ты умный помощник. Обработай запрос и дай полезный ответ. Отвечай на русском.",
+                    "analysis": "Ты аналитик. Проанализируй данные и дай выводы. Отвечай на русском.",
+                    "planning": "Ты планировщик. Составь план по запросу. Отвечай на русском.",
+                    "writing": "Ты писатель. Напиши текст по запросу. Отвечай на русском.",
+                    "editing": "Ты редактор. Улучши текст. Отвечай на русском.",
+                    "reporting": "Ты составитель отчетов. Создай отчет. Отвечай на русском.",
+                }
                 
-                except Exception as api_err:
-                    logger.warning(f"OpenRouter API error: {api_err}")
-                    pass  # Fallback
+                # Выбор модели по типу агента и репутации
+                model_by_agent = {
+                    # Высокая репутация → Claude Sonnet 4.5
+                    "classification": ("anthropic/claude-sonnet-4.5", 0.98),
+                    "qa": ("anthropic/claude-sonnet-4.5", 0.92),
+                    
+                    # Выше среднего → Gemini 3 Flash
+                    "content_generation": ("google/gemini-3-flash-preview", 0.85),
+                    "writing": ("google/gemini-3-flash-preview", 0.90),
+                    "research": ("google/gemini-3-flash-preview", 0.86),
+                    
+                    # Средняя → Gemini 2.5 Flash
+                    "universal": ("google/gemini-2.5-flash", 0.80),
+                    "analysis": ("google/gemini-2.5-flash", 0.88),
+                    "planning": ("google/gemini-2.5-flash", 0.89),
+                    
+                    # Низкая → Gemini 2.5 Flash Lite
+                    "quality_assurance": ("google/gemini-2.5-flash-lite", 0.76),
+                    "editing": ("google/gemini-2.5-flash-lite", 0.87),
+                    "reporting": ("google/gemini-2.5-flash-lite", 0.84),
+                }
+                
+                model_name, target_rep = model_by_agent.get(
+                    self._agent.type,
+                    ("google/gemini-2.5-flash", 0.80)
+                )
+                
+                # Обновляем репутацию агента под модель
+                self.metadata.reputation = target_rep
+                
+                system_prompt = system_prompts.get(
+                    self._agent.type, 
+                    "Ты умный помощник. Ответь на запрос пользователя полезно и на русском языке."
+                )
+                
+                llm = OpenRouterLLM(
+                    api_key=api_key,
+                    model_name=model_name,
+                    system_prompt=system_prompt
+                )
+                
+                user_input = str(input_data).strip()
+                
+                result = llm.query_llm(
+                    question=user_input,
+                    temperature=0.7,
+                    max_tokens=4000
+                )
+                
+                logger.info(f"OpenRouter executed: {self.metadata.tool_name}")
+                return result
+            
+            except Exception as e:
+                logger.warning(f"OpenRouter error for {self.metadata.tool_name}: {e}")
         
+        # Fallback
+        return f"[{self.metadata.tool_name}] Processed: {str(input_data)[:100]}"
+    
+    def _execute_image_generation(self, input_data, api_key: str) -> str:
+        """
+        Генерация изображения через OpenRouter.
+        
+        Формат ответа: message.images[].image_url.url (base64 data URL).
+        """
+        import requests
+        
+        user_input = str(input_data).strip()
+        
+        # Модели с поддержкой image output
+        image_models = [
+            {"model": "google/gemini-2.5-flash-image", "modalities": ["image", "text"]},
+        ]
+        
+        headers = {
+            "Authorization": f"Bearer {api_key}",
+            "Content-Type": "application/json",
+            "HTTP-Referer": "https://github.com/FractalAgentsAI/GraphArchitect",
+            "X-Title": "GraphArchitect"
+        }
+        
+        for model_cfg in image_models:
+            try:
+                payload = {
+                    "model": model_cfg["model"],
+                    "messages": [
+                        {"role": "user", "content": f"Generate an image: {user_input}"}
+                    ],
+                    "modalities": model_cfg["modalities"],
+                    "max_tokens": 4096,
+                }
+                
+                logger.info(f"Image generation: trying {model_cfg['model']}...")
+                
+                response = requests.post(
+                    "https://openrouter.ai/api/v1/chat/completions",
+                    headers=headers,
+                    json=payload,
+                    timeout=120
+                )
+                response.raise_for_status()
+                data = response.json()
+                
+                message = data.get("choices", [{}])[0].get("message", {})
+                
+                # Формат ответа: message.images[] содержит base64 data URL
+                images = message.get("images", [])
+                content = message.get("content", "")
+                
+                result_parts = []
+                
+                # Извлекаем изображения
+                for img in images:
+                    if isinstance(img, dict):
+                        img_url = img.get("image_url", {}).get("url", "")
+                        if img_url:
+                            result_parts.append(f"![image]({img_url})")
+                
+                # Текстовый контент (если есть)
+                if content:
+                    result_parts.append(content)
+                
+                if result_parts:
+                    logger.info(f"Image generation via {model_cfg['model']}: OK ({len(images)} images)")
+                    return "\n\n".join(result_parts)
+                
+            except Exception as e:
+                logger.warning(f"Image model {model_cfg['model']} failed: {e}")
+                continue
+        
+        # Fallback: текстовое описание
+        try:
+            from grapharchitect.tools.ApiTools.OpenRouterTool.openrouter_llm import OpenRouterLLM
+            
+            llm = OpenRouterLLM(
+                api_key=api_key,
+                model_name="openai/gpt-3.5-turbo",
+                system_prompt=(
+                    "Ты художник. Подробно опиши изображение по запросу: "
+                    "композицию, цвета, объекты, стиль. Отвечай на русском."
+                )
+            )
+            description = llm.query_llm(
+                question=f"Опиши изображение: {user_input}",
+                temperature=0.7,
+                max_tokens=500
+            )
+            return f"[Модель не поддерживает генерацию изображений. Текстовое описание:]\n\n{description}"
         except Exception as e:
-            # General error, fallback
-            logger.error(f"Execution error: {e}")
-        
-        # Fallback: return stub (always works!)
-        result = f"[{self.metadata.tool_name}] Processed: {str(input_data)[:100]}"
-        logger.info(f"Fallback mode: {self.metadata.tool_name}")
-        return result
+            logger.error(f"Image fallback error: {e}")
+            return f"[{self.metadata.tool_name}] Ошибка генерации: {user_input[:100]}"
     
     @property
     def agent_id(self) -> str:
@@ -298,25 +400,31 @@ class GraphArchitectBridge:
             self.strategy_finder
         )
         
-        # NLI для парсинга задач с k-NN ретривером (поддержка Faiss)
-        self.nli = self._create_nli_with_retriever()
+        # NLI для парсинга задач
+        # Если есть OpenRouter ключ — используем LLM NLI (точнее)
+        # Иначе — k-NN ретривер (быстрее, но обобщённые коннекторы)
+        self.nli = self._create_nli_service()
         self._load_nli_examples()
         
         # Обучение (опционально)
         self.training = TrainingOrchestrator(learning_rate=0.01)
         self.critic = SimpleCritic()
         
-        # ReWOO Planning (всегда доступен для использования по запросу)
+        # ReWOO Planning (использует OpenRouter API ключ)
         self.rewoo_planner = None
         if REWOO_AVAILABLE:
             try:
-                import config
-                self.rewoo_planner = ReWOOPlanner(
-                    gemini_api_key=getattr(config, 'GEMINI_API_KEY', None)
-                )
-                logger.info("ReWOO Planner initialized and available")
+                import os
+                api_key = os.getenv("OPENROUTER_API_KEY")
+                if api_key:
+                    self.rewoo_planner = ReWOOPlanner(
+                        gemini_api_key=api_key  # Используем OpenRouter ключ
+                    )
+                    logger.info("ReWOO Planner initialized with OpenRouter API key")
+                else:
+                    logger.info("ReWOO Planner: waiting for API key (will use fallback decomposition)")
             except Exception as e:
-                logger.warning(f"ReWOO Planner not available: {e}")
+                logger.warning(f"ReWOO Planner initialization error: {e}")
         
         # Конвертация всех агентов в инструменты
         self.tools = self._convert_agents_to_tools()
@@ -343,21 +451,67 @@ class GraphArchitectBridge:
             tool.metadata.capabilities_embedding = self.embedding_service.embed_tool_capabilities(tool)
             
             tools.append(tool)
+            logger.debug(f"  Tool: {tool.metadata.tool_name} [{agent.type}] "
+                        f"{tool.input.format} -> {tool.output.format}")
+        
+        # Сводка по типам
+        type_counts = {}
+        for t in tools:
+            fmt = f"{t.input.format} -> {t.output.format}"
+            type_counts[fmt] = type_counts.get(fmt, 0) + 1
+        logger.info(f"Tool connector types: {type_counts}")
         
         return tools
     
-    def _create_nli_with_retriever(self):
+    def _create_nli_service(self):
         """
-        Создать NLI с правильным k-NN ретривером (Faiss или наивный).
+        Создать NLI сервис.
+        
+        Приоритеты:
+        1. LLM NLI через OpenRouter (если есть API ключ) — точный парсинг
+        2. k-NN NLI с Faiss/наивным ретривером — быстрый, но обобщённый
         
         Returns:
-            Инициализированный NaturalLanguageInterface
+            NLI сервис (LLMNLIService или NaturalLanguageInterface)
+        """
+        import os
+        api_key = os.getenv("OPENROUTER_API_KEY")
+        
+        # Попытка создать LLM NLI (если есть ключ OpenRouter)
+        if api_key:
+            try:
+                from grapharchitect.services.nli.llm_nli_service import LLMNLIService
+                
+                llm_nli = LLMNLIService(
+                    embedding_service=self.embedding_service,
+                    backend="openrouter",
+                    model_name="openai/gpt-3.5-turbo",
+                    api_key=api_key,
+                    k_similar=3,
+                    temperature=0.1
+                )
+                
+                if llm_nli.is_available():
+                    logger.info("NLI: LLM через OpenRouter (точный парсинг коннекторов)")
+                    return llm_nli
+            
+            except Exception as e:
+                logger.warning(f"LLM NLI not available: {e}")
+        
+        # Fallback: k-NN NLI
+        return self._create_knn_nli()
+    
+    def _create_knn_nli(self):
+        """
+        Создать k-NN NLI (fallback если LLM недоступен).
+        
+        Returns:
+            NaturalLanguageInterface с k-NN ретривером
         """
         try:
             from grapharchitect.services.nli.retriever_factory import create_knn_retriever
             import config
             
-            # Создаем k-NN ретривер через фабрику
             retriever = create_knn_retriever(
                 embedding_service=self.embedding_service,
                 retriever_type=config.KNN_TYPE,
@@ -366,20 +520,19 @@ class GraphArchitectBridge:
                 faiss_index_type=config.FAISS_INDEX_TYPE
             )
             
-            # Создаем NLI с custom retriever
             from grapharchitect.services.nli.natural_language_interface import NaturalLanguageInterface
             nli = NaturalLanguageInterface(self.embedding_service, retriever=retriever)
             
-            logger.info(f"NLI created with {retriever.__class__.__name__}")
+            logger.info(f"NLI: k-NN с {retriever.__class__.__name__}")
             return nli
         
         except Exception as e:
-            logger.error(f"Error creating NLI with custom retriever: {e}")
+            logger.error(f"Error creating k-NN NLI: {e}")
             logger.info("Falling back to default NLI")
             return NaturalLanguageInterface(self.embedding_service)
     
     def _load_nli_examples(self):
-        """Load NLI examples from file if available."""
+        """Загрузить примеры NLI из файла и вычислить эмбеддинги."""
         try:
             import json
             examples_file = Path(__file__).parent / "data" / "nli_examples.json"
@@ -389,12 +542,66 @@ class GraphArchitectBridge:
                     data = json.load(f)
                     
                 examples = [NLIDatasetItem(**item) for item in data]
+                
+                # Вычисляем эмбеддинги для k-NN поиска (если не заданы)
+                computed = 0
+                for ex in examples:
+                    if not ex.task_embedding and ex.task_text:
+                        ex.task_embedding = self.embedding_service.embed_text(ex.task_text)
+                        computed += 1
+                
                 self.nli.load_dataset(examples)
-                logger.info(f"Loaded {len(examples)} NLI examples")
+                logger.info(f"Loaded {len(examples)} NLI examples ({computed} embeddings computed)")
             else:
                 logger.warning(f"NLI examples not found: {examples_file}")
         except Exception as e:
             logger.error(f"Error loading NLI examples: {e}")
+    
+    def _save_base64_images_to_files(self, text: str) -> str:
+        """
+        Найти base64-изображения в тексте и сохранить их в файлы.
+        Заменяет data:image/...;base64,... на /uploads/имя_файла.png
+        
+        Это решает проблему передачи огромных base64-строк через JSON-стрим,
+        где они разбиваются на части и ломают JSON.parse().
+        """
+        import re
+        import base64
+        
+        pattern = r'!\[([^\]]*)\]\((data:image\/([a-zA-Z]+);base64,([^\s\)]+))\)'
+        
+        def replace_match(match):
+            alt_text = match.group(1)
+            mime_ext = match.group(3)  # png, jpeg, etc.
+            b64_data = match.group(4)
+            
+            try:
+                # Декодируем base64
+                image_bytes = base64.b64decode(b64_data)
+                
+                # Генерируем имя файла
+                filename = f"gen_{uuid.uuid4().hex[:12]}.{mime_ext}"
+                
+                # Сохраняем в uploads/
+                upload_dir = Path(__file__).parent / "uploads"
+                upload_dir.mkdir(exist_ok=True)
+                filepath = upload_dir / filename
+                
+                with open(filepath, 'wb') as f:
+                    f.write(image_bytes)
+                
+                logger.info(f"Saved image: {filepath} ({len(image_bytes)} bytes)")
+                return f"![{alt_text}](/uploads/{filename})"
+            
+            except Exception as e:
+                logger.error(f"Failed to save image: {e}")
+                return match.group(0)  # Возвращаем оригинал
+        
+        if "data:image" in text:
+            result = re.sub(pattern, replace_match, text)
+            return result
+        
+        return text
     
     def get_tool_by_agent_id(self, agent_id: str) -> Optional[AgentTool]:
         """Получить BaseTool по ID агента"""
@@ -414,46 +621,59 @@ class GraphArchitectBridge:
         Парсинг пользовательского сообщения через NLI.
         
         Преобразует текст задачи в пару коннекторов (входной, выходной).
-        Если NLI не может распарсить - возвращает дефолтные коннекторы.
+        Поддерживает результаты от LLMNLIService (Connector) и k-NN NLI (ConnectorDescriptor).
         """
         try:
             result = self.nli.parse_task(message, self.tools, k=3)
             
             if result.success and result.task_representation:
-                # Конвертируем ConnectorDescriptor → Connector
-                input_conn = self._descriptor_to_connector(
-                    result.task_representation.input_connector
-                )
-                output_conn = self._descriptor_to_connector(
-                    result.task_representation.output_connector
-                )
+                raw_input = result.task_representation.input_connector
+                raw_output = result.task_representation.output_connector
                 
-                logger.debug(f"NLI: {message[:50]}... -> {input_conn.format} -> {output_conn.format}")
+                # Определяем тип объекта и конвертируем
+                input_conn = self._to_connector(raw_input)
+                output_conn = self._to_connector(raw_output)
+                
+                logger.info(f"NLI [{self.nli.__class__.__name__}]: "
+                           f"'{message[:50]}' -> {input_conn.format} -> {output_conn.format}")
                 return (input_conn, output_conn)
         
         except Exception as e:
-            logger.error(f"NLI error: {e}")
+            logger.error(f"NLI error: {e}", exc_info=True)
         
         # Fallback: default connectors
-        logger.warning("Using default connectors")
+        logger.warning("NLI failed, using default connectors: text|question -> text|answer")
         return (
             Connector("text", "question"),
             Connector("text", "answer")
         )
     
-    def _descriptor_to_connector(self, descriptor) -> Connector:
-        """Конвертировать ConnectorDescriptor → Connector"""
-        if not descriptor:
+    def _to_connector(self, obj) -> Connector:
+        """
+        Конвертировать объект в Connector.
+        
+        Поддерживает:
+        - Connector (от LLMNLIService) — возвращает как есть
+        - ConnectorDescriptor (от k-NN NLI) — извлекает data_type и semantic_type
+        - None — fallback на text|data
+        """
+        if obj is None:
             return Connector("text", "data")
         
+        # Уже Connector (от LLMNLIService)
+        if isinstance(obj, Connector):
+            return obj
+        
+        # ConnectorDescriptor (от k-NN NLI)
         data_format = "text"
         semantic_format = "data"
         
-        if descriptor.data_type:
-            data_format = descriptor.data_type.subtype or descriptor.data_type.complex_type or "text"
+        if hasattr(obj, 'data_type') and obj.data_type:
+            data_format = getattr(obj.data_type, 'subtype', None) or \
+                          getattr(obj.data_type, 'complex_type', None) or "text"
         
-        if descriptor.semantic_type:
-            semantic_format = descriptor.semantic_type.semantic_category or "data"
+        if hasattr(obj, 'semantic_type') and obj.semantic_type:
+            semantic_format = getattr(obj.semantic_type, 'semantic_category', None) or "data"
         
         return Connector(data_format, semantic_format)
     
@@ -496,9 +716,24 @@ class GraphArchitectBridge:
         algo = algo_map.get(algorithm, PathfindingAlgorithm.YEN)
         limit = limit_map.get(algorithm, 5)
         
-        logger.debug(f"Searching strategies: {start_format} -> {end_format} ({algorithm}, limit={limit})")
+        logger.info(f"Graph search: '{start_format}' -> '{end_format}' ({algorithm}, limit={limit})")
         
-        # Реальный поиск в графе!
+        # Диагностика: какие форматы есть в инструментах
+        all_input_formats = set()
+        all_output_formats = set()
+        for t in self.tools:
+            all_input_formats.add(t.input.format)
+            all_output_formats.add(t.output.format)
+        
+        logger.info(f"Available input formats: {sorted(all_input_formats)}")
+        logger.info(f"Available output formats: {sorted(all_output_formats)}")
+        
+        if start_format not in all_input_formats:
+            logger.warning(f"Start format '{start_format}' NOT in tool inputs!")
+        if end_format not in all_output_formats:
+            logger.warning(f"End format '{end_format}' NOT in tool outputs!")
+        
+        # Реальный поиск в графе
         strategies = self.strategy_finder.find_strategies(
             self.tools,
             start_format,
@@ -507,7 +742,7 @@ class GraphArchitectBridge:
             algorithm=algo
         )
         
-        logger.info(f"Found {len(strategies)} strategies")
+        logger.info(f"Found {len(strategies)} strategies for {start_format} -> {end_format}")
         
         return strategies
     
@@ -589,7 +824,10 @@ class GraphArchitectBridge:
         input_data: any,
         algorithm: str = "yen_5",
         top_k: int = 5,
-        use_rewoo: bool = False
+        use_rewoo: bool = False,
+        user_priority: str = "balanced",
+        max_cost: Optional[float] = None,
+        max_time: Optional[float] = None
     ) -> AsyncGenerator[MessageChunk, None]:
         """
         Выполнить задачу с real-time стримингом прогресса.
@@ -601,6 +839,43 @@ class GraphArchitectBridge:
         - Выполнении каждого шага
         - Финальном результате
         """
+        # 0. Адаптация под профиль пользователя
+        priority_labels = {
+            "speed": "скорость",
+            "quality": "качество",
+            "cost": "экономия",
+            "balanced": "баланс"
+        }
+        
+        yield MessageChunk(
+            type="gen_phase_start",
+            phase_id="user_adaptation",
+            content=f"Адаптация: приоритет = {priority_labels.get(user_priority, user_priority)}"
+        )
+        
+        await asyncio.sleep(0.1)
+        
+        # Применяем приоритет пользователя к температуре
+        temp_multipliers = {
+            "speed": 0.5,
+            "quality": 0.3,
+            "cost": 0.7,
+            "balanced": 1.0
+        }
+        
+        effective_temp = temp_multipliers.get(user_priority, 1.0)
+        
+        yield MessageChunk(
+            type="gen_phase_complete",
+            phase_id="user_adaptation",
+            metadata={
+                "priority": user_priority,
+                "temperature_multiplier": effective_temp,
+                "max_cost": max_cost,
+                "max_time": max_time
+            }
+        )
+        
         # 1. Парсинг задачи через NLI
         yield MessageChunk(
             type="gen_phase_start",
@@ -610,12 +885,18 @@ class GraphArchitectBridge:
         
         input_conn, output_conn = await self.parse_user_message(message)
         
+        nli_type = self.nli.__class__.__name__
+        connector_str = f"{input_conn.format} -> {output_conn.format}"
+        
         yield MessageChunk(
             type="gen_phase_complete",
             phase_id="nli_parsing",
+            content=f"NLI ({nli_type}): {connector_str}",
             metadata={
                 "input_format": input_conn.format,
-                "output_format": output_conn.format
+                "output_format": output_conn.format,
+                "nli_type": nli_type,
+                "connector_chain": connector_str
             }
         )
         
@@ -652,37 +933,362 @@ class GraphArchitectBridge:
         
         await asyncio.sleep(0.3)
         
+        # Вспомогательная функция: получить agent_id инструмента
+        def _get_agent_id(tool) -> str:
+            if isinstance(tool, AgentTool):
+                return tool.agent_id
+            return tool.metadata.tool_name
+        
+        # Вспомогательная функция: получить имя инструмента
+        def _get_tool_name(tool) -> str:
+            return tool.metadata.tool_name
+        
+        # 2.5 Формируем начальную структуру workflow (для стандартного пути)
+        strategy = strategies[0]
+        default_steps = []
+        for idx, tool_or_edge in enumerate(strategy):
+            step_name = f"Шаг {idx + 1}"
+            if hasattr(tool_or_edge, 'tools'):
+                candidates = [_get_agent_id(t) for t in tool_or_edge.tools]
+            else:
+                # Находим всех конкурентов
+                primary = tool_or_edge
+                in_fmt = primary.input.format
+                out_fmt = primary.output.format
+                all_matching = [primary]
+                for t in self.tools:
+                    if t is primary:
+                        continue
+                    if t.input.format == in_fmt and t.output.format == out_fmt:
+                        all_matching.append(t)
+                if len(all_matching) > 8:
+                    all_matching.sort(key=lambda t: t.metadata.reputation, reverse=True)
+                    all_matching = all_matching[:8]
+                candidates = [_get_agent_id(t) for t in all_matching]
+            default_steps.append({
+                "id": f"step-{idx}",
+                "name": step_name,
+                "candidates": candidates
+            })
+        
+        # Отправляем workflow_info чтобы фронтенд инициализировал currentWorkflow
+        yield MessageChunk(
+            type="workflow_info",
+            metadata={
+                "name": f"GraphArchitect ({algorithm})",
+                "workflowId": f"ga_{id(self)}",
+                "steps": default_steps
+            }
+        )
+        
+        await asyncio.sleep(0.2)
+        
         # 3. ReWOO Planning (если включен)
         rewoo_plan = None
         if use_rewoo and self.rewoo_planner:
             yield MessageChunk(
                 type="gen_phase_start",
                 phase_id="rewoo_planning",
-                content=f"Создание детального плана (ReWOO с Gemini)..."
+                content="ReWOO: Создание плана через LLM..."
+            )
+            
+            # Сортируем инструменты по репутации (топ-10)
+            sorted_tools = sorted(
+                self.tools,
+                key=lambda t: t.metadata.reputation,
+                reverse=True
             )
             
             rewoo_plan = self.rewoo_planner.create_plan(
                 task_description=message,
                 strategies=strategies,
-                algorithm_used=algorithm
+                algorithm_used=algorithm,
+                top_tools=sorted_tools[:10]
             )
             
             if rewoo_plan:
+                # Показываем план
+                steps_info = []
+                for step in rewoo_plan.steps:
+                    steps_info.append(f"{step.tool_name}: {step.description}")
+                
                 yield MessageChunk(
                     type="gen_phase_complete",
                     phase_id="rewoo_planning",
                     metadata={
                         "steps_in_plan": len(rewoo_plan.steps),
-                        "reasoning": rewoo_plan.reasoning[:200],
+                        "reasoning": rewoo_plan.reasoning[:300],
+                        "steps": steps_info,
                         "estimated_time": rewoo_plan.estimated_time,
                         "estimated_cost": rewoo_plan.estimated_cost
                     }
                 )
+                
+                # Обновляем workflow_info с шагами из ReWOO плана
+                rewoo_steps = []
+                for step_idx, plan_step in enumerate(rewoo_plan.steps):
+                    # Находим кандидатов: по имени + все с такими же коннекторами
+                    name_matched = []
+                    for tool in self.tools:
+                        tn = tool.metadata.tool_name
+                        if (plan_step.tool_name.lower() in tn.lower() 
+                            or tn.lower() in plan_step.tool_name.lower()):
+                            name_matched.append(tool)
+                    
+                    all_candidates = list(name_matched)
+                    if name_matched:
+                        ref = name_matched[0]
+                        for tool in self.tools:
+                            if tool not in all_candidates:
+                                if tool.input.format == ref.input.format and tool.output.format == ref.output.format:
+                                    all_candidates.append(tool)
+                    
+                    if not all_candidates:
+                        sorted_by_rep = sorted(self.tools, key=lambda t: t.metadata.reputation, reverse=True)
+                        all_candidates = sorted_by_rep[:5]
+                    
+                    if len(all_candidates) > 6:
+                        all_candidates.sort(key=lambda t: t.metadata.reputation, reverse=True)
+                        all_candidates = all_candidates[:6]
+                    
+                    rewoo_steps.append({
+                        "id": f"rewoo-step-{step_idx}",
+                        "name": plan_step.description,
+                        "candidates": [_get_agent_id(t) for t in all_candidates]
+                    })
+                
+                # Переотправляем workflow_info с шагами ReWOO
+                yield MessageChunk(
+                    type="workflow_info",
+                    metadata={
+                        "name": f"ReWOO Plan ({algorithm})",
+                        "workflowId": f"rewoo_{id(self)}",
+                        "steps": rewoo_steps
+                    }
+                )
+                
+                await asyncio.sleep(0.3)
+                
+                # Выполняем по плану ReWOO с поддержкой зависимостей
+                step_results = {}  # step_id → результат
+                original_input = input_data
+                current_data = input_data
+                
+                for step_idx, plan_step in enumerate(rewoo_plan.steps):
+                    step_id = f"rewoo-step-{step_idx}"
+                    is_last_step = (step_idx == len(rewoo_plan.steps) - 1)
+                    
+                    # Формируем вход на основе зависимостей
+                    if plan_step.depends_on and len(plan_step.depends_on) > 0:
+                        # Есть зависимости — собираем результаты зависимых шагов
+                        dep_results = []
+                        for dep_id in plan_step.depends_on:
+                            # depends_on может быть "step-1" или "step-0" (нумерация из плана)
+                            # Ищем по разным форматам ID
+                            dep_result = step_results.get(dep_id)
+                            if not dep_result:
+                                # Пробуем rewoo-step-N формат
+                                for key, val in step_results.items():
+                                    if dep_id in key or key in dep_id:
+                                        dep_result = val
+                                        break
+                            if dep_result:
+                                dep_results.append(str(dep_result))
+                        
+                        if dep_results:
+                            # Для финального объединения используем специальный промпт
+                            if is_last_step:
+                                current_data = f"{plan_step.description}\n\nВОТ ДАННЫЕ ДЛЯ ОБЪЕДИНЕНИЯ:\n" + "\n---\n".join(dep_results)
+                            else:
+                                current_data = f"{plan_step.description}\n\nКонтекст:\n" + "\n---\n".join(dep_results)
+                        else:
+                            current_data = plan_step.description
+                    else:
+                        # Нет зависимостей — используем описание шага как инструкцию
+                        current_data = plan_step.description
+                    
+                    # Логируем что пойдет в инструмент
+                    logger.info(f"Step {step_idx+1} final instruction: {current_data[:200]}...")
+                    
+                    # Находим кандидатов:
+                    # 1) По имени из плана
+                    # 2) Добавляем ВСЕ инструменты с совместимыми коннекторами
+                    name_matched = []
+                    for tool in self.tools:
+                        tn = tool.metadata.tool_name
+                        if (plan_step.tool_name.lower() in tn.lower()
+                            or tn.lower() in plan_step.tool_name.lower()):
+                            name_matched.append(tool)
+                    
+                    # Расширяем: добавляем инструменты с такими же коннекторами
+                    candidates = list(name_matched)
+                    if name_matched:
+                        ref_tool = name_matched[0]
+                        ref_in = ref_tool.input.format
+                        ref_out = ref_tool.output.format
+                        for tool in self.tools:
+                            if tool not in candidates:
+                                if tool.input.format == ref_in and tool.output.format == ref_out:
+                                    candidates.append(tool)
+                    
+                    if not candidates:
+                        # Fallback: берем топ-5 по репутации
+                        sorted_by_rep = sorted(
+                            self.tools,
+                            key=lambda t: t.metadata.reputation,
+                            reverse=True
+                        )
+                        candidates = sorted_by_rep[:5]
+                    
+                    # Ограничиваем до 6 для читаемости
+                    if len(candidates) > 6:
+                        candidates.sort(key=lambda t: t.metadata.reputation, reverse=True)
+                        candidates = candidates[:6]
+                    
+                    # Событие начала шага
+                    yield MessageChunk(
+                        type="step_started",
+                        step_id=step_id,
+                        metadata={
+                            "name": plan_step.description,
+                            "candidates": [_get_agent_id(t) for t in candidates]
+                        }
+                    )
+                    
+                    await asyncio.sleep(0.3)
+                    
+                    # СОРЕВНОВАНИЕ: минимум 2 секунды анимации
+                    # Показываем даже для 1 кандидата (визуализация работы)
+                    competition_steps = 10  # 10 шагов по 0.2с = 2 секунды
+                    for progress_step in range(competition_steps + 1):
+                        progress = int(progress_step * 100 / competition_steps)
+                        await asyncio.sleep(0.2)
+                        
+                        for tool in candidates:
+                            yield MessageChunk(
+                                type="agent_progress",
+                                agent_id=_get_agent_id(tool),
+                                step_id=step_id,
+                                progress=progress
+                            )
+                        
+                        # Обновляем scores
+                        if progress >= 20 and len(candidates) > 1:
+                            scores = {}
+                            for tool in candidates:
+                                base_score = tool.metadata.reputation
+                                noise = (hash(tool.metadata.tool_name + str(progress)) % 100) / 1000
+                                current_score = base_score * (0.8 + progress / 400) + noise
+                                scores[tool] = min(current_score, 0.99)
+                            
+                            yield MessageChunk(
+                                type="agent_score_updated",
+                                step_id=step_id,
+                                metadata={
+                                    "agents": [
+                                        {
+                                            "agentId": _get_agent_id(t),
+                                            "score": round(scores[t], 3)
+                                        }
+                                        for t in candidates
+                                    ]
+                                }
+                            )
+                    
+                    # Выбор через softmax
+                    if len(candidates) > 1:
+                        selection = await self.select_tool_from_group(
+                            candidates,
+                            self.embedding_service.embed_text(message),
+                            top_k=min(5, len(candidates))
+                        )
+                        matched_tool = selection.selected_tool if selection else candidates[0]
+                        prob = selection.selection_probability if selection else 1.0
+                    else:
+                        matched_tool = candidates[0]
+                        prob = 1.0
+                    
+                    winner_id = _get_agent_id(matched_tool)
+                    
+                    yield MessageChunk(
+                        type="agent_selected",
+                        agent_id=winner_id,
+                        step_id=step_id,
+                        score=prob
+                    )
+                    
+                    await asyncio.sleep(0.5)
+                    
+                    # Выполнение победителя
+                    yield MessageChunk(
+                        type="agent_executing",
+                        agent_id=winner_id,
+                        step_id=step_id,
+                        progress=30,
+                        content=plan_step.description
+                    )
+                    
+                    await asyncio.sleep(0.3)
+                    
+                    # Лог входных данных
+                    input_preview = str(current_data)[:150].replace('\n', ' ')
+                    logger.info(f"ReWOO step {step_idx+1} INPUT [{matched_tool.metadata.tool_name}]: {input_preview}")
+                    
+                    current_data = matched_tool.execute(current_data)
+                    
+                    # Лог выходных данных
+                    output_preview = str(current_data)[:150].replace('\n', ' ')
+                    logger.info(f"ReWOO step {step_idx+1} OUTPUT [{matched_tool.metadata.tool_name}]: {output_preview}")
+                    
+                    # Сохраняем результат шага для зависимостей
+                    step_results[step_id] = current_data
+                    step_results[plan_step.step_id] = current_data  # Дублируем под ID из плана
+                    
+                    yield MessageChunk(
+                        type="agent_executing",
+                        agent_id=winner_id,
+                        step_id=step_id,
+                        progress=100,
+                        content="Завершено"
+                    )
+                    
+                    # Промежуточный результат в UI лог
+                    result_str = str(current_data)
+                    if "data:image" in result_str or "![image]" in result_str:
+                        result_preview = "[IMAGE GENERATED]"
+                    else:
+                        result_preview = result_str[:200].replace('\n', ' ')
+                    
+                    yield MessageChunk(
+                        type="gen_phase_start",
+                        phase_id=f"rewoo_result_{step_idx}",
+                        content=f"[Результат шага {step_idx+1}] {result_preview}"
+                    )
+                    
+                    yield MessageChunk(
+                        type="step_completed",
+                        step_id=step_id,
+                        metadata={"result_preview": str(current_data)[:200]}
+                    )
+                    
+                    await asyncio.sleep(0.3)
+                
+                # Финальный результат — вывод последнего шага (он уже объединённый)
+                final_result = str(current_data)
+                
+                # Если результат содержит base64-изображение, сохраняем в файл
+                final_result = self._save_base64_images_to_files(final_result)
+                
+                logger.info(f"ReWOO Final result: {final_result[:200]}...")
+                
+                yield MessageChunk(type="text", content=final_result)
+                return  # Завершаем - ReWOO план выполнен
+            
             else:
                 yield MessageChunk(
                     type="gen_phase_complete",
                     phase_id="rewoo_planning",
-                    content="ReWOO plan не создан, используется базовая стратегия"
+                    content="ReWOO plan не создан, используется стандартный путь"
                 )
             
             await asyncio.sleep(0.3)
@@ -709,120 +1315,98 @@ class GraphArchitectBridge:
         
         task.task_embedding = self.embedding_service.embed_text(message)
         
-        # 5. Выполняем каждый шаг стратегии с стримингом
+        # 5. Подготовка данных для цепочки
+        # Если конечный формат — изображение, а первый шаг — текстовый,
+        # модифицируем вход чтобы QA/Writer создал ОПИСАНИЕ для генератора
         current_data = input_data
+        if (output_conn.data_format == "image" and 
+            len(strategy) > 1 and 
+            input_conn.data_format == "text"):
+            current_data = (
+                f"Создай подробное текстовое описание изображения по запросу пользователя. "
+                f"Опиши: объекты, композицию, цвета, стиль, фон. "
+                f"Запрос: {input_data}"
+            )
+            logger.info(f"Image pipeline: modified input for text→image chain")
+        
         gradient_traces = []
         
         for step_index, tool_or_edge in enumerate(strategy):
             step_id = f"step-{step_index}"
             
             # Определяем группу инструментов
-            # Может быть один инструмент или группа (если это ToolEdge)
             if hasattr(tool_or_edge, 'tools'):
                 # Это ToolEdge с группой инструментов
                 tool_group = tool_or_edge.tools
             else:
-                # Это один инструмент
-                tool_group = [tool_or_edge]
+                # Один инструмент — но ищем ВСЕХ конкурентов с такими же коннекторами
+                primary_tool = tool_or_edge
+                in_fmt = primary_tool.input.format
+                out_fmt = primary_tool.output.format
+                
+                # Находим все инструменты с совпадающими коннекторами
+                tool_group = [primary_tool]
+                for t in self.tools:
+                    if t is primary_tool:
+                        continue
+                    if t.input.format == in_fmt and t.output.format == out_fmt:
+                        tool_group.append(t)
+                
+                # Ограничиваем до топ-8 по репутации (чтобы UI не перегрузить)
+                if len(tool_group) > 8:
+                    tool_group.sort(key=lambda t: t.metadata.reputation, reverse=True)
+                    tool_group = tool_group[:8]
             
-            # Событие начала шага
-            yield MessageChunk(
-                type="step_started",
-                step_id=step_id,
-                metadata={
-                    "name": f"Шаг {step_index + 1}",
-                    "candidates": [t.metadata.tool_name for t in tool_group]
-                }
-            )
-            
-            # Если есть конкуренция (> 1 кандидата), показываем соревнование
-            if len(tool_group) > 1:
-                # Имитируем прогресс выбора (для визуализации)
-                for progress in range(0, 101, 20):
-                    await asyncio.sleep(0.15)
-                    
-                    # Отправляем прогресс для каждого кандидата
-                    for tool in tool_group:
-                        yield MessageChunk(
-                            type="agent_progress",
-                            agent_id=tool.metadata.tool_name,
-                            step_id=step_id,
-                            progress=progress
-                        )
-                    
-                    # Обновляем scores (растут к финалу)
-                    if progress >= 80:
-                        scores = {}
-                        for tool in tool_group:
-                            # Примерный score на основе репутации
-                            score = tool.metadata.reputation * (0.9 + progress / 1000)
-                            scores[tool.metadata.tool_name] = min(score, 0.99)
-                        
-                        yield MessageChunk(
-                            type="agent_score_updated",
-                            step_id=step_id,
-                            metadata={
-                                "agents": [
-                                    {"agentId": name, "score": score}
-                                    for name, score in scores.items()
-                                ]
-                            }
-                        )
-            
-            # Шаг начался
-            candidate_ids = [
-                t.agent_id if isinstance(t, AgentTool) else t.metadata.tool_name
-                for t in tool_group
-            ]
-            
+            # Событие начала шага (с agent_id для корректной работы фронтенда)
             yield MessageChunk(
                 type="step_started",
                 step_id=step_id,
                 content=f"Шаг {step_index + 1}/{len(strategy)}",
                 metadata={
-                    "candidates_count": len(tool_group),
-                    "candidate_ids": candidate_ids
+                    "name": f"Шаг {step_index + 1}",
+                    "candidates": [_get_agent_id(t) for t in tool_group],
+                    "candidates_count": len(tool_group)
                 }
             )
             
-            # ДОБАВЛЕНО: Визуализация соревнования агентов (если > 1 кандидата)
-            if len(tool_group) > 1:
-                # Показываем прогресс "работы" каждого кандидата
-                for progress in range(0, 101, 25):
-                    await asyncio.sleep(0.2)
-                    
+            await asyncio.sleep(0.2)
+            
+            # Визуализация соревнования: минимум 2 секунды
+            competition_steps = 10  # 10 * 0.2с = 2 секунды минимум
+            for progress_step in range(competition_steps + 1):
+                progress = int(progress_step * 100 / competition_steps)
+                await asyncio.sleep(0.2)
+                
+                for tool in tool_group:
+                    yield MessageChunk(
+                        type="agent_progress",
+                        agent_id=_get_agent_id(tool),
+                        step_id=step_id,
+                        progress=progress
+                    )
+                
+                # Обновляем scores
+                if progress >= 20 and len(tool_group) > 1:
+                    scores = {}
                     for tool in tool_group:
-                        agent_id = tool.agent_id if isinstance(tool, AgentTool) else tool.metadata.tool_name
-                        
-                        yield MessageChunk(
-                            type="agent_progress",
-                            agent_id=agent_id,
-                            step_id=step_id,
-                            progress=progress
-                        )
+                        base_score = tool.metadata.reputation
+                        noise = (hash(tool.metadata.tool_name + str(progress)) % 100) / 1000
+                        current_score = base_score * (0.8 + progress / 400) + noise
+                        scores[tool] = min(current_score, 0.99)
                     
-                    # Обновляем scores на каждом этапе (растут к концу)
-                    if progress >= 50:
-                        scores = {}
-                        for tool in tool_group:
-                            # Симулируем рост score
-                            base_score = tool.metadata.reputation
-                            current_score = base_score * (0.85 + progress / 500)
-                            scores[tool] = min(current_score, 0.99)
-                        
-                        yield MessageChunk(
-                            type="agent_score_updated",
-                            step_id=step_id,
-                            metadata={
-                                "agents": [
-                                    {
-                                        "agentId": t.agent_id if isinstance(t, AgentTool) else t.metadata.tool_name,
-                                        "score": round(scores[t], 3)
-                                    }
-                                    for t in tool_group
-                                ]
-                            }
-                        )
+                    yield MessageChunk(
+                        type="agent_score_updated",
+                        step_id=step_id,
+                        metadata={
+                            "agents": [
+                                {
+                                    "agentId": _get_agent_id(t),
+                                    "score": round(scores[t], 3)
+                                }
+                                for t in tool_group
+                            ]
+                        }
+                    )
             
             # Выбор инструмента через РЕАЛЬНЫЙ softmax!
             selection_result = await self.select_tool_from_group(
@@ -882,8 +1466,16 @@ class GraphArchitectBridge:
             await asyncio.sleep(0.2)
             
             try:
+                # Лог: что получает инструмент на вход
+                input_preview = str(current_data)[:150].replace('\n', ' ')
+                logger.info(f"Step {step_index+1} INPUT [{selected_tool.metadata.tool_name}]: {input_preview}")
+                
                 # РЕАЛЬНОЕ выполнение!
                 current_data = selected_tool.execute(current_data)
+                
+                # Лог: что инструмент выдал
+                output_preview = str(current_data)[:150].replace('\n', ' ')
+                logger.info(f"Step {step_index+1} OUTPUT [{selected_tool.metadata.tool_name}]: {output_preview}")
                 
                 yield MessageChunk(
                     type="agent_executing",
@@ -902,12 +1494,25 @@ class GraphArchitectBridge:
             
             await asyncio.sleep(0.2)
             
+            # Промежуточный результат в лог
+            result_str = str(current_data) if current_data else "(пусто)"
+            if "data:image" in result_str or "![image]" in result_str:
+                result_preview = "[IMAGE GENERATED]"
+            else:
+                result_preview = result_str[:200].replace('\n', ' ')
+            
+            yield MessageChunk(
+                type="gen_phase_start",
+                phase_id=f"step_result_{step_index}",
+                content=f"[Результат шага {step_index+1}] {result_preview}"
+            )
+            
             # Шаг завершен
             yield MessageChunk(
                 type="step_completed",
                 step_id=step_id,
                 metadata={
-                    "result_preview": str(current_data)[:100] if current_data else None
+                    "result_preview": str(current_data)[:200] if current_data else None
                 }
             )
             
@@ -916,10 +1521,74 @@ class GraphArchitectBridge:
             
             await asyncio.sleep(0.3)
         
-        # 6. Финальный результат
+        # 6. RLAIF оценка (если есть OpenRouter ключ) - ОПЦИОНАЛЬНО, не блокирует ответ
+        import os
+        rlaif_score = None
+        
+        if os.getenv("OPENROUTER_API_KEY") and len(str(current_data)) < 50000:
+            try:
+                from grapharchitect.services.rlaif.llm_critic import LLMCritic
+                
+                yield MessageChunk(
+                    type="gen_phase_start",
+                    phase_id="rlaif_evaluation",
+                    content="RLAIF: Оценка качества..."
+                )
+                
+                # Очищаем ответ от тяжелых бинарных данных перед оценкой
+                eval_answer = str(current_data)
+                if "data:image" in eval_answer or len(eval_answer) > 5000:
+                    import re
+                    eval_answer = re.sub(r'data:image\/[a-zA-Z]*;base64,[^\s\)]*', '[IMAGE]', eval_answer)
+                    if len(eval_answer) > 2000:
+                        eval_answer = eval_answer[:2000] + "..."
+                
+                critic_llm = LLMCritic(
+                    backend="openrouter",
+                    model_name="openai/gpt-3.5-turbo",
+                    temperature=0.2,
+                    detailed_evaluation=False  # Упрощенная оценка
+                )
+                
+                rlaif_result = critic_llm.evaluate_answer(
+                    task=message,
+                    answer=eval_answer,
+                    context={"tools_used": []}
+                )
+                
+                rlaif_score = rlaif_result.overall_score
+                
+                yield MessageChunk(
+                    type="gen_phase_complete",
+                    phase_id="rlaif_evaluation",
+                    metadata={"overall_score": round(rlaif_score, 2)}
+                )
+                
+                logger.info(f"RLAIF score: {rlaif_score:.2f}")
+            
+            except Exception as e:
+                logger.warning(f"RLAIF evaluation skipped: {e}")
+                yield MessageChunk(
+                    type="gen_phase_complete",
+                    phase_id="rlaif_evaluation",
+                    content="Пропущено"
+                )
+        
+        # 7. Финальный результат (без "Execution result:" — чистый ответ)
+        result_text = str(current_data)
+        
+        # Если результат содержит base64-изображение, сохраняем в файл
+        result_text = self._save_base64_images_to_files(result_text)
+        
+        # Логируем финальный результат в консоль
+        if "/static/" in result_text or "/uploads/" in result_text:
+            logger.info(f"Final result: [IMAGE saved to file]")
+        else:
+            logger.info(f"Final result: {result_text[:200]}...")
+        
         yield MessageChunk(
             type="text",
-            content=f"Execution result:\n\n{current_data}"
+            content=result_text
         )
     
     async def _auto_evaluate_and_train(self, context: ExecutionContext):

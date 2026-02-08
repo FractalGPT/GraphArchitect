@@ -403,10 +403,11 @@ body {
 }
 
 .message {
-    margin-bottom: 24px;
-    max-width: 75%;
+    margin-bottom: 20px;
+    max-width: 100%;
     animation: slideInMessage 0.4s cubic-bezier(0.4, 0, 0.2, 1);
     position: relative;
+    flex-shrink: 0;
 }
 
 @keyframes slideInMessage {
@@ -423,7 +424,9 @@ body {
 .user-message {
     margin-left: auto;
     width: fit-content;
+    max-width: 75%;
     min-width: 80px;
+    flex-shrink: 0;
     background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
     color: white;
     padding: 12px 20px;
@@ -469,8 +472,11 @@ body {
 .assistant-message {
     background: linear-gradient(145deg, #ffffff 0%, #fafbfc 100%);
     border: 2px solid #e5e7eb;
-    padding: 20px 24px;
+    padding: 15px 20px;
     border-radius: 20px 20px 20px 4px;
+    flex-shrink: 0;
+    width: 100%;
+    max-width: 100%;
     /* 3D neumorphism эффект */
     box-shadow: 
         0 6px 16px rgba(0, 0, 0, 0.08),
@@ -491,7 +497,7 @@ body {
 
 /* 3D иконка робота с глубиной */
 .assistant-message::before {
-    content: '🤖';
+    content: 'GA';
     position: absolute;
     top: -12px;
     left: 20px;
@@ -523,6 +529,18 @@ body {
     color: #374151;
     position: relative;
     z-index: 1;
+    white-space: pre-wrap;
+    word-wrap: break-word;
+}
+
+.message-content img {
+    max-width: 100%;
+    max-height: 600px;
+    height: auto;
+    border-radius: 12px;
+    margin: 15px 0;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+    display: block;
 }
 
 .user-message .message-content {
@@ -917,7 +935,7 @@ textarea:focus {
 }
 
 .agent-desc::before {
-    content: '●';
+    content: '*';
     font-size: 8px;
     animation: statusBlink 2s ease-in-out infinite;
 }

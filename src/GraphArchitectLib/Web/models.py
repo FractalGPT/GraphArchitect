@@ -97,6 +97,10 @@ class MessageRequest(BaseModel):
     files: Optional[List[str]] = []
     planning_algorithm: str = "yen_5"
     use_streaming: bool = True
+    use_rewoo: bool = False
+    user_priority: str = "balanced"
+    max_cost: Optional[float] = None
+    max_time: Optional[float] = None
 
 class MessageChunk(BaseModel):
     """Чанк ответа (для стриминга всей цепочки: Генерация -> Выбор -> Выполнение)"""

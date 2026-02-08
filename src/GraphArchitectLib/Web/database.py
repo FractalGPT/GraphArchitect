@@ -207,21 +207,13 @@ class Database:
             cursor = conn.cursor()
             
             # Проверяем сколько агентов уже в БД
-            cursor.execute("SELECT COUNT(*) FROM agents")
-            count = cursor.fetchone()[0]
-            
-            if count > 0:
-                logger.info(f"Database already has {count} tools, skipping load")
-                return
-            
-            # Дефолтные агенты (minimal set для старта)
             default_agents = self._get_default_agents()
             
-            # Вставляем всех агентов
+            # Вставляем отсутствующих агентов (INSERT OR IGNORE)
             inserted = 0
             for agent in default_agents:
                 cursor.execute("""
-                    INSERT OR REPLACE INTO agents 
+                    INSERT OR IGNORE INTO agents 
                     (id, name, type, icon, color, specialization, capabilities, cost, metrics)
                     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """, (
@@ -235,10 +227,18 @@ class Database:
                     agent.cost,
                     json.dumps(agent.metrics)
                 ))
-                inserted += 1
+                if cursor.rowcount > 0:
+                    inserted += 1
             
             conn.commit()
-            logger.info(f"Loaded tools to database: {inserted}")
+            
+            cursor.execute("SELECT COUNT(*) FROM agents")
+            total = cursor.fetchone()[0]
+            
+            if inserted > 0:
+                logger.info(f"Added {inserted} new tools (total: {total})")
+            else:
+                logger.info(f"Database has {total} tools, all up to date")
     
     def _get_default_agents(self):
         """Получить список дефолтных агентов для первоначальной загрузки."""
@@ -343,6 +343,16 @@ class Database:
             Agent(id="agent-smart-qa", name="Smart QA", type="qa", icon="Q7", color="#ec4899",
                   specialization="Smart question answering", capabilities=["smart"], cost=0.025,
                   metrics={"avgResponseTime": 3500, "avgScore": 0.89}),
+            
+            # Генерация изображений (text|question -> image|answer)
+            Agent(id="agent-image-gemini", name="Gemini Image Gen", type="image_generation", icon="IG", color="#4285f4",
+                  specialization="Image generation via Gemini", capabilities=["image_generation", "diagrams", "schemas"],
+                  cost=0.04,
+                  metrics={"avgResponseTime": 8000, "avgScore": 0.85}),
+            Agent(id="agent-image-gpt", name="GPT Image Gen", type="image_generation", icon="I2", color="#10a37f",
+                  specialization="Image generation via GPT", capabilities=["image_generation", "illustrations"],
+                  cost=0.05,
+                  metrics={"avgResponseTime": 10000, "avgScore": 0.88}),
         ]
     
     def clear_all_data(self):
