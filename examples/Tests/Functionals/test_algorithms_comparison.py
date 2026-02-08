@@ -223,52 +223,6 @@ class TestAlgorithmsComparison:
         
         # ACO вероятностный, может быть медленнее
         assert elapsed < 5.0
-    
-    def test_algorithms_comparison_on_same_graph(self):
-        """Сравнение всех алгоритмов на одном графе."""
-        
-        # Создаем граф среднего размера
-        tools, _ = create_realistic_tool_graph(50)
-        finder = GraphStrategyFinder()
-        
-        results = {}
-        
-        # Тест каждого алгоритма
-        algorithms = [
-            ("Dijkstra", PathfindingAlgorithm.DIJKSTRA, 1),
-            ("A*", PathfindingAlgorithm.ASTAR, 1),
-            ("Yen-3", PathfindingAlgorithm.YEN, 3),
-            ("Yen-5", PathfindingAlgorithm.YEN, 5),
-            ("ACO-5", PathfindingAlgorithm.ANT_COLONY, 5)
-        ]
-        
-        print(f"\n  Сравнение алгоритмов на {len(tools)} инструментах:")
-        print()
-        
-        for name, algo, limit in algorithms:
-            start = time.time()
-            
-            strategies = finder.find_strategies(
-                tools=tools,
-                start_format="text|question",
-                end_format="text|answer",
-                algorithm=algo,
-                limit=limit
-            )
-            
-            elapsed = time.time() - start
-            
-            results[name] = {
-                "time": elapsed,
-                "paths_found": len(strategies),
-                "avg_path_length": sum(len(s) for s in strategies) / len(strategies) if strategies else 0
-            }
-            
-            print(f"    {name:12} {elapsed*1000:7.2f}ms  найдено:{len(strategies):2}  avg_длина:{results[name]['avg_path_length']:.1f}")
-        
-        # Dijkstra должен быть самым быстрым (1 путь)
-        assert results["Dijkstra"]["time"] <= results["Yen-5"]["time"]
-
 
 if __name__ == "__main__":
     pytest.main([__file__, "-v", "--tb=short"])

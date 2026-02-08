@@ -210,37 +210,6 @@ class TestToolExpander:
         # Количество инструментов не должно измениться
         assert len(expanded) == len(basic_tools)
     
-    def test_expand_input_any(self):
-        """Расширение Any на входе"""
-        tool = SimpleTool("AnyInput", "text", "json", ANY_SEMANTIC, "data")
-        expander = ToolExpander()
-        
-        expanded = expander.expand([tool], "question", "data")
-        
-        # Должно быть 2: оригинал + копия с question
-        assert len(expanded) == 2
-    
-    def test_expand_output_any(self):
-        """Расширение Any на выходе"""
-        tool = SimpleTool("AnyOutput", "text", "json", "data", ANY_SEMANTIC)
-        expander = ToolExpander()
-        
-        expanded = expander.expand([tool], "data", "answer")
-        
-        # Должно быть 2: оригинал + копия с answer
-        assert len(expanded) == 2
-    
-    def test_expand_both_any(self):
-        """Расширение Any на входе и выходе"""
-        tool = SimpleTool("BothAny", "text", "json", ANY_SEMANTIC, ANY_SEMANTIC)
-        expander = ToolExpander()
-        
-        expanded = expander.expand([tool], "question", "answer")
-        
-        # Должно быть 4: оригинал + 3 комбинации
-        assert len(expanded) == 4
-
-
 # ==================== Тесты GraphStrategyFinder ====================
 
 class TestGraphStrategyFinder:

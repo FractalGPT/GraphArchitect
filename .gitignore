@@ -4,6 +4,7 @@ __pycache__/
 *$py.class
 
 grapharchitect.db
+src/GraphArchitectLib/Web/uploads
 
 # C extensions
 *.so
