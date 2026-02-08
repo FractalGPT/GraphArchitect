@@ -10,9 +10,9 @@ import pytest
 import os
 from unittest.mock import Mock, patch
 
-from openrouter_llm import OpenRouterLLM, OpenRouterTool
-from openrouter_config import OpenRouterConfig, ModelConfig
-from openrouter_basetool import (
+from .openrouter_llm import OpenRouterLLM, OpenRouterTool
+from .openrouter_config import OpenRouterConfig, ModelConfig
+from .openrouter_basetool import (
     OpenRouterChatTool,
     OpenRouterClassifierTool,
     OpenRouterSummarizerTool,

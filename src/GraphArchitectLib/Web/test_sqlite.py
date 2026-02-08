@@ -53,7 +53,7 @@ def sample_agent():
         id="test-agent",
         name="Test Agent",
         type="test",
-        icon="🧪",
+        icon="",
         color="#6366f1",
         specialization="Тестирование",
         capabilities=["testing"],
@@ -121,7 +121,6 @@ class TestAgents:
         assert loaded.name == sample_agent.name
         assert loaded.type == sample_agent.type
         assert loaded.cost == sample_agent.cost
-    
     def test_get_all_agents(self, temp_repo):
         """Получение всех агентов"""
         # Сохраняем несколько
@@ -130,7 +129,7 @@ class TestAgents:
                 id=f"agent-{i}",
                 name=f"Agent {i}",
                 type="test",
-                icon="🧪",
+                icon="",
                 color="#fff",
                 cost=i * 0.01,
                 metrics={}
@@ -141,7 +140,6 @@ class TestAgents:
         agents = temp_repo.get_all_agents()
         
         assert len(agents) == 5
-    
     def test_update_agent(self, temp_repo, sample_agent):
         """Обновление агента"""
         # Сохраняем

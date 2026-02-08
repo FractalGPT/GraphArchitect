@@ -27,14 +27,14 @@ class SQLiteRepository:
     но с персистентным хранилищем.
     """
     
-    def __init__(self, db_path: str = "grapharchitect.db"):
+    def __init__(self, db_path: str = "grapharchitect.db", insert_default_agent = True):
         """
         Инициализация репозитория.
         
         Args:
             db_path: Путь к файлу БД
         """
-        self.db = get_database(db_path)
+        self.db = get_database(db_path, insert_default_agent)
         logger.info(f"SQLiteRepository initialized ({db_path})")
     
     # ============== Работа с агентами ==============

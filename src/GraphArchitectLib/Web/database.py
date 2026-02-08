@@ -374,7 +374,7 @@ class Database:
 _database: Optional[Database] = None
 
 
-def get_database(db_path: str = "grapharchitect.db") -> Database:
+def get_database(db_path: str = "grapharchitect.db", insert_default_agent = True) -> Database:
     """
     Получить экземпляр базы данных (singleton).
     
@@ -389,7 +389,8 @@ def get_database(db_path: str = "grapharchitect.db") -> Database:
     if _database is None:
         _database = Database(db_path)
         
-        # При первом запуске загружаем агентов из agent_library
-        _database.insert_default_agents()
+        if insert_default_agent:
+            # При первом запуске загружаем агентов из agent_library
+            _database.insert_default_agents()
     
     return _database
