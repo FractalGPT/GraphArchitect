@@ -43,7 +43,7 @@ def temp_db():
 @pytest.fixture
 def temp_repo(temp_db):
     """Временный репозиторий"""
-    return SQLiteRepository(temp_db.db_path)
+    return SQLiteRepository(temp_db.db_path, insert_default_agent = False)
 
 
 @pytest.fixture

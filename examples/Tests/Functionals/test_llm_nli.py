@@ -158,7 +158,8 @@ class TestLLMNLI:
         similar = llm_nli._find_similar_examples("Классифицировать текст", k=2)
         
         # Создаем промпт
-        prompt = llm_nli._create_few_shot_prompt("Тестовая задача", similar, tools)
+        #prompt = llm_nli._create_few_shot_prompt("Тестовая задача", similar, tools)
+        prompt = llm_nli._create_nli_propmpt("Тестовая задача", similar, tools)
         
         # Проверка структуры промпта
         assert "Задача:" in prompt
