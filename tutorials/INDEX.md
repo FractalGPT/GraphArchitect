@@ -32,7 +32,7 @@
 
 ## Все туториалы
 
-### Beginner (5 туториалов, 75 минут)
+### Beginner (5 туториалов, 60 минут)
 
 1. **Quick Start** (5 мин)
    - Установка и первый запуск
@@ -50,11 +50,7 @@
    - Как устроены инструменты
    - [beginner/04_understanding_tools.md](beginner/04_understanding_tools.md)
 
-5. **Simple API Usage** (15 мин)
-   - Работа с REST API
-   - [beginner/05_simple_api_usage.md](beginner/05_simple_api_usage.md)
-
-### Intermediate (5 туториалов, 150 минут)
+### Intermediate (2 туториалов, 60 минут)
 
 1. **Graph Algorithms** (30 мин)
    - Dijkstra, A*, Yen, ACO
@@ -63,32 +59,6 @@
 2. **Tool Selection** (30 мин)
    - Softmax, температура, логиты
    - [intermediate/02_tool_selection.md](intermediate/02_tool_selection.md)
-
-3. **NLI Parsing** (30 мин)
-   - Natural Language Interface
-   - [intermediate/03_nli_parsing.md](intermediate/03_nli_parsing.md)
-
-4. **Training System** (30 мин)
-   - Policy Gradient, Contrastive Learning
-   - [intermediate/04_training_system.md](intermediate/04_training_system.md)
-
-5. **Custom Tools** (30 мин)
-   - Создание своих инструментов
-   - [intermediate/05_custom_tools.md](intermediate/05_custom_tools.md)
-
-### Advanced (3 туториала, 105 минут)
-
-1. **Custom Algorithms** (40 мин)
-   - Собственные алгоритмы поиска
-   - [advanced/01_custom_algorithms.md](advanced/01_custom_algorithms.md)
-
-2. **Performance Tuning** (35 мин)
-   - Оптимизация скорости и стоимости
-   - [advanced/02_performance_tuning.md](advanced/02_performance_tuning.md)
-
-3. **Extending System** (30 мин)
-   - Расширение возможностей
-   - [advanced/03_extending_system.md](advanced/03_extending_system.md)
 
 ### Deployment (2 туториала, 95 минут)
 

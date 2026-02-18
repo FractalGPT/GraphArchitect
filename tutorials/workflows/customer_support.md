@@ -225,26 +225,6 @@ response = requests.post(
 
 ---
 
-## Мониторинг качества
-
-### Проверка статистики
-
-```bash
-curl http://localhost:8000/api/training/statistics
-```
-
-Результат:
-```json
-{
-  "enabled": true,
-  "total_executions": 15,
-  "average_quality": 0.873,
-  "success_rate": 0.933,
-  "average_execution_time": 4.32,
-  "average_cost": 0.065
-}
-```
-
 ### Метрики инструментов
 
 ```bash

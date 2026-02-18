@@ -70,9 +70,8 @@ python main.py
 **Изучите**:
 1. [Алгоритмы графа](intermediate/01_graph_algorithms.md) - 30 мин
 2. [Выбор инструментов](intermediate/02_tool_selection.md) - 30 мин
-3. [Система обучения](intermediate/04_training_system.md) - 30 мин
 
-**Время**: 90 минут  
+**Время**: 60 минут  
 **Результат**: Глубокое понимание системы
 
 ### Нужен production deployment
@@ -80,9 +79,8 @@ python main.py
 **Изучите**:
 1. [Системы эмбеддингов](deployment/01_embedding_systems.md) - 45 мин
 2. [Production Deployment](deployment/02_production_deployment.md) - 50 мин
-3. [Performance Tuning](advanced/02_performance_tuning.md) - 35 мин
 
-**Время**: 130 минут  
+**Время**: 95 минут
 **Результат**: Production-ready система
 
 ---
@@ -97,10 +95,9 @@ tutorials/
 ├── TUTORIAL_GUIDE.md      # Руководство
 ├── QUICK_REFERENCE.md     # Справочник
 │
-├── beginner/              # 5 туториалов (75 мин)
-├── intermediate/          # 5 туториалов (150 мин)
-├── advanced/              # 5 туториалов (200 мин)
-└── workflows/             # 6 сценариев (150 мин)
+├── beginner/              # 4 туториала
+├── intermediate/          # 2 туториала
+└── workflows/             # 6 сценариев
 ```
 
 ---

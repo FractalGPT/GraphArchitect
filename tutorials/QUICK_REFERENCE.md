@@ -65,19 +65,6 @@ POST /api/chat/{chat_id}/message/stream
 GET /api/chat/{chat_id}/workflow
 ```
 
-### Training
-
-```bash
-# Обратная связь
-POST /api/training/feedback
-
-# Статистика
-GET /api/training/statistics
-
-# Метрики инструмента
-GET /api/training/tools/{tool_id}
-```
-
 ### Utility
 
 ```bash

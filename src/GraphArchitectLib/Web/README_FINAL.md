@@ -96,11 +96,10 @@ GET  /api/chat/{chat_id}/documents           # List documents
 GET  /api/document/{document_id}             # Get document
 ```
 
-### Training (5)
+### Training (4)
 
 ```
 POST /api/training/feedback                  # Submit feedback
-GET  /api/training/statistics                # Get statistics
 GET  /api/training/tools/{tool_id}          # Get tool metrics
 GET  /api/training/tools                     # Get all metrics
 POST /api/training/train                     # Train on dataset

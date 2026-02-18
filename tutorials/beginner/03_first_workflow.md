@@ -191,22 +191,6 @@ INFO - Task completed: COMPLETED
 INFO - Trained tools: 3
 ```
 
-### Проверьте обучение
-
-```bash
-curl http://localhost:8000/api/training/statistics
-```
-
-Результат:
-```json
-{
-  "enabled": true,
-  "total_executions": 1,
-  "average_quality": 0.870,
-  "success_rate": 1.000
-}
-```
-
 ---
 
 ## Упражнения

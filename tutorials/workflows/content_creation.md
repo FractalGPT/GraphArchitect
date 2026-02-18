@@ -232,42 +232,7 @@ article = create_article_full(
 | SEO оптимизация | > 80% | Keywords coverage |
 | Уникальность | > 95% | Plagiarism check |
 
-### Мониторинг через API
-
-```python
-# Получить статистику качества
-stats = requests.get("http://localhost:8000/api/training/statistics").json()
-
-print(f"Среднее качество: {stats['average_quality']:.1%}")
-print(f"Успешность: {stats['success_rate']:.1%}")
-```
-
 ---
-
-## Масштабирование
-
-### Batch обработка
-
-```python
-topics = [
-    "AI в здравоохранении",
-    "Blockchain технологии",
-    "Квантовые вычисления",
-    "IoT и умные города",
-    "Кибербезопасность в 2026"
-]
-
-articles = []
-for topic in topics:
-    article = create_article_simple(topic)
-    articles.append({
-        "topic": topic,
-        "content": article,
-        "created_at": datetime.now()
-    })
-    
-print(f"Создано статей: {len(articles)}")
-```
 
 ### Параллельное выполнение
 
@@ -287,7 +252,7 @@ async def create_multiple_articles(topics):
         tasks = [create_article_async(session, topic) for topic in topics]
         return await asyncio.gather(*tasks)
 
-# Создать 10 статей параллельно
+# Создать N статей параллельно
 articles = asyncio.run(create_multiple_articles(topics))
 ```
 

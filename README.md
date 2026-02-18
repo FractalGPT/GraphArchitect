@@ -54,12 +54,12 @@ GraphArchitect/
 │   │   ├── api_router.py       # 16 endpoints
 │   │   └── grapharchitect_bridge.py
 │   │
-│   └── Tests/                   # 235 тестов (88%)
+│   └── Tests/                   
 │
-├── tutorials/                   # 21 туториал
-│   ├── beginner/               # 5 туториалов
-│   ├── intermediate/           # 5 туториалов
-│   ├── advanced/               # 5 туториалов
+├── tutorials/                  # 21 туториал
+│   ├── beginner/               # 4 туториала
+│   ├── intermediate/           # 2 туториала
+│   ├── deployment/             # 2 туториала
 │   └── workflows/              # 6 сценариев
 │
 ├── integrations/                # Интеграции
@@ -139,7 +139,6 @@ GraphArchitect/
 
 - [Graph Algorithms](tutorials/intermediate/01_graph_algorithms.md)
 - [Tool Selection](tutorials/intermediate/02_tool_selection.md)
-- [Custom Tools](tutorials/intermediate/05_custom_tools.md)
 
 ### Готовые сценарии
 
@@ -150,9 +149,8 @@ GraphArchitect/
 
 ### Для production
 
-- [Embedding Systems](tutorials/advanced/01_embedding_systems.md)
+- [Embedding Systems](tutorials/production/01_embedding_systems.md)
 - [Production Deployment](tutorials/deployment/02_production_deployment.md)
-- [Performance Tuning](tutorials/advanced/02_performance_tuning.md)
 
 ---
 
@@ -164,10 +162,6 @@ GraphArchitect/
 # Workflow
 POST /api/chat/{id}/workflow
 POST /api/chat/{id}/message/stream
-
-# Training
-POST /api/training/feedback
-GET  /api/training/statistics
 
 # Health
 GET  /api/health
