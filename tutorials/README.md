@@ -14,7 +14,6 @@
 - **02_basic_concepts.md** - Основные концепции системы
 - **03_first_workflow.md** - Первый workflow шаг за шагом
 - **04_understanding_tools.md** - Понимание инструментов и агентов
-- **05_simple_api_usage.md** - Простое использование API
 
 ### Средний уровень (Intermediate)
 
@@ -22,17 +21,6 @@
 
 - **01_graph_algorithms.md** - Алгоритмы поиска путей (Dijkstra, A*, Yen, ACO)
 - **02_tool_selection.md** - Softmax выбор инструментов
-- **03_nli_parsing.md** - Natural Language Interface
-- **04_training_system.md** - Система обучения
-- **05_custom_tools.md** - Создание собственных инструментов
-
-### Продвинутый уровень (Advanced)
-
-Для глубокой кастомизации и оптимизации.
-
-- **01_custom_algorithms.md** - Собственные алгоритмы поиска
-- **02_performance_tuning.md** - Оптимизация производительности
-- **03_extending_system.md** - Расширение системы
 
 ### Уровень развертывания (Deployment)
 
